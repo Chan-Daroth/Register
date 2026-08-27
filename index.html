@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Driver Partner Application</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root {
+      --grab:#00b14f; --grab-dark:#007a38; --grab-light:#e8f8ef;
+      --surface:#fff; --bg:#f0f4f8; --text:#1a1a2e;
+      --muted:#6b7280; --border:#e2e8f0; --err:#dc2626;
+      --radius:10px; --shadow:0 2px 8px rgba(0,0,0,.08);
+    }
+    body { font-family:'Kantumruy Pro',system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+    /* ── Header ── */
+    .hdr { background:var(--grab); padding:18px 24px; text-align:center; color:#fff; position:relative; }
+    .hdr-logo { font-size:2rem; font-weight:900; letter-spacing:-1px; }
+    .hdr-sub  { font-size:.85rem; opacity:.82; margin-top:3px; }
+    .lang-btn {
+      position:absolute; right:14px; top:50%; transform:translateY(-50%);
+      background:rgba(255,255,255,.2); border:1.5px solid rgba(255,255,255,.5);
+      color:#fff; padding:5px 12px; border-radius:20px; font-size:.78rem;
+      font-weight:700; cursor:pointer; transition:background .15s; white-space:nowrap;
+      font-family:inherit;
+    }
+    .lang-btn:hover { background:rgba(255,255,255,.35); }
+
+    /* ── Week selector dropdown ── */
+    .week-select-wrap { margin-bottom:12px; }
+    .week-select {
+      width:100%; padding:9px 12px; border:1.5px solid var(--border);
+      border-radius:8px; font-size:.88rem; color:var(--text);
+      font-family:inherit; background:var(--surface); cursor:pointer;
+      appearance:none; -webkit-appearance:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat:no-repeat; background-position:right 12px center;
+      padding-right:34px; transition:border-color .15s, box-shadow .15s;
+    }
+    .week-select:focus { outline:none; border-color:var(--grab); box-shadow:0 0 0 3px rgba(0,177,79,.15); }
+
+    /* ── Tab nav ── */
+    .tab-nav { background:var(--grab-dark); display:flex; }
+    .tab-nav button {
+      flex:1; padding:13px 10px; border:none; background:none;
+      color:rgba(255,255,255,.65); cursor:pointer; font-size:.88rem;
+      font-weight:600; border-bottom:3px solid transparent;
+      transition:color .15s, border-color .15s, background .15s;
+      font-family:inherit;
+    }
+    .tab-nav button.active { color:#fff; border-bottom-color:#fff; background:rgba(255,255,255,.1); }
+
+    /* ── Setup banner ── */
+    .setup-banner { background:#fffbeb; border-bottom:2px solid #f59e0b; padding:10px 20px; display:flex; align-items:center; gap:8px; font-size:.82rem; color:#92400e; }
+    .setup-banner.hidden { display:none; }
+    .setup-banner a { color:#d97706; text-decoration:underline; cursor:pointer; font-weight:600; }
+
+    /* ── Layout ── */
+    .main { max-width:680px; margin:0 auto; padding:20px 14px 80px; }
+
+    /* ── Section cards ── */
+    .scard { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:18px; overflow:hidden; }
+    .scard-hdr { background:var(--grab); color:#fff; padding:13px 20px; display:flex; align-items:center; gap:10px; }
+    .scard-num { background:rgba(255,255,255,.25); width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.74rem; font-weight:800; flex-shrink:0; }
+    .scard-title { font-weight:700; font-size:.96rem; }
+    .scard-body { padding:18px; display:flex; flex-direction:column; gap:15px; }
+
+    /* ── Fields ── */
+    .field { display:flex; flex-direction:column; gap:5px; }
+    .field label { font-size:.74rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+    .req { color:var(--err); margin-left:2px; }
+    .field input { border:1.5px solid var(--border); border-radius:8px; padding:10px 12px; font-size:.92rem; color:var(--text); font-family:inherit; width:100%; transition:border-color .15s, box-shadow .15s; }
+    .field input:focus { outline:none; border-color:var(--grab); box-shadow:0 0 0 3px rgba(0,177,79,.15); }
+    .field input.err { border-color:var(--err); }
+    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media(max-width:480px){ .field-row{grid-template-columns:1fr;} }
+    .hint { font-size:.75rem; color:var(--muted); }
+    .err-msg { font-size:.75rem; color:var(--err); display:none; }
+    .err-msg.on { display:block; }
+    .exp-badge { font-size:.75rem; font-weight:700; padding:2px 8px; border-radius:100px; display:none; margin-top:2px; }
+    .exp-badge.on { display:inline-block; }
+    .exp-ok  { background:#dcfce7; color:#15803d; }
+    .exp-warn{ background:#fef3c7; color:#92400e; }
+    .exp-bad { background:#fee2e2; color:#dc2626; }
+
+    /* Khmer overrides — prevent uppercase on Khmer labels */
+    body.lang-km .field label { text-transform:none; letter-spacing:0; font-size:.8rem; }
+    body.lang-km .hint { font-size:.8rem; }
+    body.lang-km .err-msg { font-size:.8rem; }
+    body.lang-km .confirm-text { line-height:1.8; }
+
+    /* ── Card selectors ── */
+    .sel-card { border:2px solid var(--border); border-radius:10px; padding:13px 12px; cursor:pointer; text-align:center; transition:border-color .15s,background .15s; user-select:none; }
+    .sel-card:hover { border-color:#a7f3d0; }
+    .sel-card.active { border-color:var(--grab); background:var(--grab-light); }
+    .svc-cards,.time-cards { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .svc-icon { font-size:1.7rem; display:block; margin-bottom:4px; }
+    .svc-name { font-weight:700; font-size:.88rem; }
+    .svc-desc { font-size:.72rem; color:var(--muted); margin-top:2px; }
+    .sel-card.active .svc-name { color:var(--grab-dark); }
+    .card-group { display:flex; gap:10px; flex-wrap:wrap; }
+    .day-name  { font-weight:700; font-size:.88rem; }
+    .day-badge { display:inline-block; font-size:.63rem; padding:1px 6px; border-radius:100px; margin-top:3px; background:#e0f2fe; color:#0369a1; font-weight:600; }
+    .day-badge.opt { background:#f3f4f6; color:var(--muted); }
+    .time-text { font-weight:700; font-size:.9rem; }
+    .time-sub  { font-size:.73rem; color:var(--muted); margin-top:2px; }
+
+    /* ── Slot picker ── */
+    .slot-week-hdr { font-size:.71rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; padding:5px 0 7px; border-bottom:1px solid var(--border); margin-bottom:10px; }
+    .slot-row { display:grid; grid-template-columns:80px 1fr 1fr; gap:8px; margin-bottom:8px; align-items:stretch; }
+    @media(max-width:360px){ .slot-row{grid-template-columns:1fr 1fr;} .slot-date-cell{grid-column:1/-1;} }
+    .slot-date-cell { display:flex; flex-direction:column; justify-content:center; }
+    .slot-date { font-size:.84rem; font-weight:700; }
+    .slot-date-mo { font-size:.69rem; color:var(--muted); }
+    .slot-btn { border:2px solid var(--border); border-radius:10px; padding:9px 6px; cursor:pointer; text-align:center; transition:border-color .15s,background .15s; user-select:none; background:#fff; font-family:inherit; width:100%; }
+    .slot-btn:hover:not([disabled]) { border-color:#a7f3d0; }
+    .slot-btn.active { border-color:var(--grab); background:var(--grab-light); }
+    .slot-btn[disabled] { background:#f9fafb; cursor:not-allowed; opacity:.55; }
+    .slot-time { font-weight:700; font-size:.8rem; }
+    .slot-seats { font-size:.67rem; margin-top:3px; font-weight:600; }
+    .seats-ok   { color:#15803d; }
+    .seats-low  { color:#d97706; }
+    .seats-full { color:#dc2626; }
+    .slot-no-cfg { text-align:center; padding:22px 14px; color:var(--muted); font-size:.83rem; border:1.5px dashed var(--border); border-radius:10px; line-height:1.6; }
+    .btn.active  { background:var(--grab) !important; color:#fff !important; }
+
+    /* ── Confirm ── */
+    .confirm-wrap { border:2px solid var(--border); border-radius:10px; padding:13px 15px; display:flex; gap:12px; align-items:flex-start; cursor:pointer; transition:border-color .15s,background .15s; }
+    .confirm-wrap.active { border-color:var(--grab); background:var(--grab-light); }
+    .confirm-wrap input[type=checkbox] { width:18px; height:18px; flex-shrink:0; accent-color:var(--grab); cursor:pointer; margin-top:1px; }
+    .confirm-text { font-size:.85rem; font-weight:600; line-height:1.5; }
+
+    /* ── Buttons ── */
+    .btn-submit { width:100%; padding:14px; background:var(--grab); color:#fff; border:none; border-radius:10px; font-size:1rem; font-weight:700; cursor:pointer; letter-spacing:.02em; transition:background .15s,transform .1s; font-family:inherit; }
+    .btn-submit:hover { background:var(--grab-dark); }
+    .btn-submit:active { transform:scale(.98); }
+    .btn-submit:disabled { background:#9ca3af; cursor:not-allowed; transform:none; }
+    .submit-note { text-align:center; font-size:.74rem; color:var(--muted); margin-top:8px; }
+    .btn { padding:9px 18px; border-radius:8px; border:none; cursor:pointer; font-size:.85rem; font-weight:600; transition:opacity .15s,transform .1s; font-family:inherit; }
+    .btn:active { transform:scale(.97); }
+    .btn-green { background:var(--grab); color:#fff; }
+    .btn-green:hover { background:var(--grab-dark); }
+    .btn-gray  { background:#e5e7eb; color:var(--text); }
+    .btn-gray:hover  { background:#d1d5db; }
+
+    /* ── Success ── */
+    .success-screen { display:none; padding:20px 0; text-align:center; }
+    .success-screen.on { display:block; }
+    .success-icon  { font-size:3.5rem; margin-bottom:12px; }
+    .success-title { font-size:1.35rem; font-weight:800; color:var(--grab-dark); margin-bottom:8px; }
+    .success-msg   { color:var(--muted); font-size:.87rem; line-height:1.6; }
+    .success-card  { background:var(--grab-light); border:1.5px solid #86efac; border-radius:10px; padding:15px; margin:16px 0; text-align:left; }
+    .sc-row { display:flex; justify-content:space-between; padding:4px 0; font-size:.84rem; }
+    .sc-lbl { color:var(--muted); }
+    .sc-val { font-weight:700; }
+
+    /* ── QR Tab ── */
+    .qr-step { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:16px; overflow:hidden; }
+    .qr-step-hdr { background:var(--grab); color:#fff; padding:12px 18px; display:flex; align-items:center; gap:10px; font-weight:700; font-size:.95rem; }
+    .qr-step-num { background:rgba(255,255,255,.25); width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.74rem; font-weight:800; flex-shrink:0; }
+    .qr-step-body { padding:18px; }
+    .host-options { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0; }
+    @media(max-width:480px){ .host-options{grid-template-columns:1fr;} }
+    .host-card { border:2px solid var(--border); border-radius:10px; padding:14px; cursor:pointer; transition:border-color .15s,background .15s; }
+    .host-card:hover { border-color:var(--grab); }
+    .host-card.best { border-color:var(--grab); background:var(--grab-light); }
+    .host-card .hc-badge { display:inline-block; font-size:.68rem; font-weight:700; background:var(--grab); color:#fff; padding:1px 7px; border-radius:100px; margin-bottom:4px; }
+    .host-card .hc-name { font-weight:700; font-size:.92rem; }
+    .host-card .hc-desc { font-size:.78rem; color:var(--muted); margin-top:3px; }
+    .host-steps { margin-top:14px; }
+    .host-step { display:flex; gap:10px; margin-bottom:10px; font-size:.85rem; line-height:1.5; }
+    .hs-num { background:var(--grab); color:#fff; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:800; flex-shrink:0; margin-top:1px; }
+    .hs-num.alt { background:#374151; }
+    .url-row { display:flex; gap:8px; margin-top:10px; }
+    .url-row input { flex:1; border:1.5px solid var(--border); border-radius:8px; padding:10px 12px; font-size:.9rem; font-family:inherit; transition:border-color .15s; }
+    .url-row input:focus { outline:none; border-color:var(--grab); }
+
+    /* QR preview */
+    .qr-preview-wrap { margin-top:16px; display:none; }
+    .qr-preview-wrap.on { display:block; }
+    .qr-poster-preview { background:#fff; border:1.5px solid var(--border); border-radius:12px; padding:24px 20px; text-align:center; margin-bottom:14px; }
+    .qr-poster-preview .pp-logo { font-size:1.8rem; font-weight:900; color:var(--grab); letter-spacing:-1px; }
+    .qr-poster-preview .pp-title { font-size:1.1rem; font-weight:700; margin:6px 0 2px; }
+    .qr-poster-preview .pp-sub { font-size:.8rem; color:var(--muted); margin-bottom:16px; }
+    .qr-poster-preview img { width:180px; height:180px; display:block; margin:0 auto 14px; border-radius:8px; }
+    .qr-poster-preview .pp-scan { font-size:.88rem; font-weight:700; color:var(--grab-dark); }
+    .qr-poster-preview .pp-url { font-size:.7rem; color:var(--muted); margin-top:4px; word-break:break-all; }
+    .qr-poster-preview .pp-services { display:flex; justify-content:center; gap:10px; margin-top:12px; }
+    .qr-poster-preview .pp-svc { background:var(--grab-light); color:var(--grab-dark); padding:4px 12px; border-radius:100px; font-size:.75rem; font-weight:700; }
+    .qr-actions { display:flex; gap:10px; flex-wrap:wrap; }
+
+    /* ── Setup section ── */
+    .setup-section { margin-top:28px; border:1.5px dashed var(--border); border-radius:var(--radius); overflow:hidden; }
+    .setup-toggle { width:100%; padding:13px 18px; background:#f8fafc; border:none; text-align:left; cursor:pointer; font-size:.87rem; font-weight:700; color:var(--muted); display:flex; justify-content:space-between; align-items:center; font-family:inherit; }
+    .setup-toggle:hover { background:#f1f5f9; }
+    .setup-body { padding:18px; display:none; }
+    .setup-body.on { display:block; }
+    .setup-step { display:flex; gap:10px; margin-bottom:12px; font-size:.84rem; line-height:1.5; }
+    .step-n { background:var(--grab); color:#fff; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:800; flex-shrink:0; margin-top:1px; }
+    .setup-body pre { background:#1e293b; color:#e2e8f0; border-radius:8px; padding:15px; font-size:.76rem; overflow-x:auto; white-space:pre; margin:10px 0; line-height:1.5; }
+    .copy-btn { background:var(--grab); color:#fff; border:none; border-radius:6px; padding:6px 14px; font-size:.79rem; cursor:pointer; font-weight:600; font-family:inherit; }
+    .url-save { background:var(--grab); color:#fff; border:none; border-radius:8px; padding:10px 16px; font-size:.85rem; cursor:pointer; font-weight:600; white-space:nowrap; font-family:inherit; }
+    .url-ok { font-size:.78rem; color:var(--grab-dark); margin-top:6px; display:none; }
+    .url-test-result { font-size:.79rem; margin-top:6px; display:none; }
+
+    /* ── Toast ── */
+    .toast { position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(80px); opacity:0; background:#1e293b; color:#fff; padding:10px 22px; border-radius:100px; font-size:.83rem; font-weight:500; transition:transform .3s,opacity .3s; z-index:1000; white-space:nowrap; pointer-events:none; }
+    .toast.on { transform:translateX(-50%) translateY(0); opacity:1; }
+
+    @media print {
+      .tab-nav, .setup-banner, .setup-section, .qr-actions, .hdr-sub, .lang-btn { display:none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="hdr">
+  <div class="hdr-logo" id="hdr-logo" onclick="adminTap()" style="cursor:default;user-select:none;">Grab</div>
+  <div class="hdr-sub" data-i18n="hdr-sub">Driver Partner Recruitment</div>
+  <button class="lang-btn" id="lang-btn" onclick="toggleLang()"><span id="lang-btn-text">ខ្មែរ</span></button>
+</div>
+
+
+<!-- Setup banner -->
+<div class="setup-banner" id="setup-banner">
+  <span>⚙️</span>
+  <span id="banner-msg-span"><strong>Google Sheet not connected.</strong> Submissions won't be saved until you set it up.
+  <a onclick="openSetup()">Set up →</a></span>
+</div>
+
+<div class="main">
+
+  <!-- ══════════════════════════════════════════
+       TAB 1 — APPLICATION FORM
+  ══════════════════════════════════════════ -->
+  <div id="tab-form">
+    <form id="form" novalidate>
+
+      <!-- Section 1 -->
+      <div class="scard">
+        <div class="scard-hdr">
+          <div class="scard-num">1</div>
+          <div class="scard-title" data-i18n="s1-title">Personal Information</div>
+        </div>
+        <div class="scard-body">
+
+          <div class="field">
+            <label><span data-i18n="lbl-name">English Full Name</span> <span class="req">*</span></label>
+            <input type="text" id="f-name" placeholder="e.g. CHAN DARA"
+              data-ph-en="e.g. CHAN DARA" data-ph-km="ឧ. CHAN DARA" autocomplete="name" />
+            <span class="err-msg" id="e-name" data-i18n="e-name">Please enter your full name in English (as on ID).</span>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label><span data-i18n="lbl-nid">National ID Number</span> <span class="req">*</span></label>
+              <input type="text" id="f-nid" placeholder="123456789" maxlength="20" />
+              <span class="err-msg" id="e-nid" data-i18n="e-nid">Please enter your National ID number.</span>
+            </div>
+            <div class="field">
+              <label><span data-i18n="lbl-exp">ID Expiry Date</span> <span class="req">*</span></label>
+              <input type="date" id="f-exp" onchange="checkExpiry()" />
+              <span class="exp-badge" id="exp-badge"></span>
+              <span class="err-msg" id="e-exp" data-i18n="e-exp">ID must be valid for at least 6 months.</span>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label><span data-i18n="lbl-phone">Phone Number</span> <span class="req">*</span></label>
+              <input type="tel" id="f-phone" placeholder="012 345 678" autocomplete="tel" />
+              <span class="err-msg" id="e-phone" data-i18n="e-phone">Please enter your phone number.</span>
+            </div>
+            <div class="field">
+              <label><span data-i18n="lbl-tg">Telegram</span> <span class="req">*</span></label>
+              <input type="text" id="f-tg" placeholder="@username or 012345678"
+                data-ph-en="@username or 012345678" data-ph-km="@username ឬ 012345678" />
+              <span class="err-msg" id="e-tg" data-i18n="e-tg">Please enter your Telegram username or number.</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label><span data-i18n="lbl-commune">District (Khan) — Phnom Penh</span> <span class="req">*</span></label>
+            <select id="f-commune" class="week-select"></select>
+            <span class="err-msg" id="e-commune" data-i18n="e-commune">Please select your district.</span>
+          </div>
+
+          <div class="field">
+            <label><span data-i18n="lbl-svc">Preferred Service</span> <span class="req">*</span></label>
+            <div class="svc-cards">
+              <div class="sel-card" id="svc-bike" onclick="selectService('GrabBike','svc-bike')">
+                <span class="svc-icon">🏍️</span>
+                <div class="svc-name" data-i18n="svc-bike-name">GrabBike</div>
+                <div class="svc-desc" data-i18n="svc-bike-desc">Passenger rides</div>
+              </div>
+              <div class="sel-card" id="svc-food" onclick="selectService('GrabFood Delivery','svc-food')">
+                <span class="svc-icon">🛵</span>
+                <div class="svc-name" data-i18n="svc-food-name">GrabFood Delivery</div>
+                <div class="svc-desc" data-i18n="svc-food-desc">Food &amp; parcel delivery</div>
+              </div>
+            </div>
+            <span class="err-msg" id="e-svc" data-i18n="e-svc">Please select your preferred service.</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Section 4 -->
+      <div class="scard">
+        <div class="scard-hdr">
+          <div class="scard-num">4</div>
+          <div class="scard-title" data-i18n="s4-title">Interview Schedule</div>
+        </div>
+        <div class="scard-body">
+
+          <div class="field">
+            <label><span data-i18n="lbl-slot">Interview Slot</span> <span class="req">*</span></label>
+            <span class="hint" style="margin-bottom:8px;" data-i18n="hint-slot">Pick one date and time. Slots marked FULL cannot be selected.</span>
+            <div id="slot-picker"></div>
+            <span class="err-msg" id="e-slot" data-i18n="e-slot">Please select an interview slot.</span>
+          </div>
+
+          <div style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:10px;padding:14px;">
+            <div style="font-weight:700;font-size:.83rem;color:#92400e;margin-bottom:8px;" data-i18n="docs-title">📋 Required Documents</div>
+            <div style="font-size:.81rem;color:#78350f;line-height:1.9;" data-i18n-html="docs-list">Please bring <strong>all</strong> of the following on interview day:<ul style="margin-top:6px;padding-left:20px;"><li><strong>National ID</strong> (original + photocopy)</li><li><strong>Vehicle Registration Card</strong></li><li><strong>CV / Resume</strong></li></ul></div>
+          </div>
+
+          <div class="field">
+            <label><span data-i18n="lbl-confirm">Attendance Confirmation</span> <span class="req">*</span></label>
+            <div class="confirm-wrap" id="confirm-wrap" onclick="toggleConfirm(event)">
+              <input type="checkbox" id="f-confirm" onchange="syncConfirm()" />
+              <span class="confirm-text" data-i18n="confirm-text">I confirm that I will attend the interview on my selected date and time, and will arrive 10 minutes early with all required documents.</span>
+            </div>
+            <span class="err-msg" id="e-confirm" data-i18n="e-confirm">Please confirm your attendance.</span>
+          </div>
+
+        </div>
+      </div>
+
+      <div>
+        <button type="submit" class="btn-submit" id="submit-btn" data-i18n="submit-btn">Submit Application</button>
+        <div class="submit-note" data-i18n="submit-note">By submitting you agree to be contacted by Grab for the interview process.</div>
+      </div>
+
+    </form>
+
+    <!-- Success screen -->
+    <div class="success-screen" id="success-screen">
+      <div class="success-icon">✅</div>
+      <div class="success-title" data-i18n="success-title">Application Submitted!</div>
+      <div class="success-msg" data-i18n="success-msg1">Thank you! Our team will review your application and contact you to confirm the interview.</div>
+      <div class="success-card" id="success-card"></div>
+      <div class="success-msg" id="success-msg2" data-i18n-html="success-msg2">Please bring your <strong>National ID</strong>, <strong>vehicle documents</strong>, and <strong>driver's license</strong> to the interview.</div>
+      <button class="btn-submit" style="max-width:300px;margin:22px auto 0;display:block;" onclick="resetForm()" data-i18n="btn-another">Submit Another</button>
+    </div>
+
+    <!-- Google Sheets setup (bottom of form tab) -->
+    <div class="setup-section" id="setup-section">
+      <button class="setup-toggle" onclick="toggleSetup()">
+        <span data-i18n="setup-toggle-lbl">⚙️&nbsp; Google Sheets Setup</span>
+        <span id="setup-arrow">▼</span>
+      </button>
+      <div class="setup-body" id="setup-body">
+        <p style="font-size:.84rem;color:var(--muted);margin-bottom:16px;">
+          Every form submission will appear as a new row in your sheet. Do this once.
+        </p>
+        <div class="setup-step"><div class="step-n">1</div>
+          <div>Create a new <strong>Google Sheet</strong> (e.g. "Grab Driver Applications").</div>
+        </div>
+        <div class="setup-step"><div class="step-n">2</div>
+          <div>Open it → <strong>Extensions → Apps Script</strong>. Delete all existing code and paste the script below. Then click <strong>Save</strong>.</div>
+        </div>
+        <pre id="script-code">function doPost(e) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var data  = JSON.parse(e.parameter.data);
+
+    if (sheet.getLastRow() === 0) {
+      var h = ['Timestamp','Full Name','National ID','ID Expiry',
+               'Phone','Telegram','Commune / Address',
+               'Preferred Service','Interview Date','Time Slot',
+               'Confirmed Attendance','Status'];
+      sheet.appendRow(h);
+      sheet.getRange(1,1,1,h.length)
+        .setFontWeight('bold')
+        .setBackground('#00b14f')
+        .setFontColor('#ffffff');
+    }
+
+    sheet.appendRow([
+      new Date().toLocaleString('en-GB'),
+      data.fullName, data.nationalId, data.idExpiry,
+      data.phone,    data.telegram,   data.commune,
+      data.service,  data.days,       data.timeSlot,
+      data.confirmed,'New'
+    ]);
+
+    return ContentService
+      .createTextOutput(JSON.stringify({status:'success'}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({status:'error',msg:err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  try {
+    var sheet  = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var data   = sheet.getDataRange().getValues();
+    var counts = {};
+    if (data.length > 1) {
+      var headers = data[0].map(function(h){ return String(h).trim(); });
+      var dIdx = headers.indexOf('Interview Date');
+      if (dIdx < 0) dIdx = headers.indexOf('Interview Day(s)');
+      var tIdx = headers.indexOf('Time Slot');
+      if (dIdx >= 0 && tIdx >= 0) {
+        for (var i = 1; i < data.length; i++) {
+          var day  = String(data[i][dIdx]).trim();
+          var time = String(data[i][tIdx]).trim();
+          if (!day || !time) continue;
+          var sess = time.toLowerCase().indexOf('pm') >= 0 ? 'PM' : 'AM';
+          var key  = day + '|' + sess;
+          counts[key] = (counts[key] || 0) + 1;
+        }
+      }
+    }
+    return ContentService
+      .createTextOutput(JSON.stringify({status:'alive',counts:counts}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({status:'alive',counts:{}}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}</pre>
+        <button class="copy-btn" onclick="copyScript()">Copy Script</button>
+        <div class="setup-step" style="margin-top:14px;"><div class="step-n">3</div>
+          <div>Click <strong>Deploy → New deployment</strong>. Type = <strong>Web app</strong>.
+          "Execute as" = <strong>Me</strong>, "Who has access" = <strong>Anyone</strong> (not "Google account").
+          Deploy → copy the Web App URL.</div>
+        </div>
+        <div class="setup-step"><div class="step-n">4</div>
+          <div>Paste the URL below and click <strong>Save</strong>. Then test it.</div>
+        </div>
+        <div class="url-row">
+          <input id="url-input" type="text" placeholder="https://script.google.com/macros/s/..." />
+          <button class="url-save" onclick="saveUrl()">Save</button>
+          <button class="url-save" style="background:#374151;" onclick="testUrl()">Test</button>
+        </div>
+        <div class="url-ok" id="url-ok">✓ Connected! Submissions will appear in your Google Sheet.</div>
+        <div class="url-test-result" id="url-test-result"></div>
+        <div style="margin-top:14px;padding:13px;background:#fef3c7;border-radius:8px;font-size:.82rem;line-height:1.6;color:#78350f;">
+          <strong>⚠ Already deployed before?</strong> You must click <strong>Deploy → New deployment</strong> every time you change the script. "Manage existing" runs the old code.
+        </div>
+        <div style="margin-top:14px;padding:13px;background:var(--grab-light);border-radius:8px;font-size:.82rem;line-height:1.6;color:#065f46;">
+          <strong>📊 Shortlisting in the sheet:</strong> A "Status" column is automatically added to every row with value "New". Your team can update it to <em>Shortlisted / Contacted / Interview Scheduled / Rejected</em> directly in the sheet.
+        </div>
+
+        <!-- ── Schedule Config ── -->
+        <div style="margin-top:22px;border-top:1.5px dashed var(--border);padding-top:18px;">
+          <div style="font-weight:700;font-size:.9rem;margin-bottom:14px;">📅 Interview Schedule Config</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div class="field">
+              <label>Start Date</label>
+              <input type="date" id="sched-start" style="font-family:inherit;" />
+            </div>
+            <div class="field">
+              <label>Weeks to Show</label>
+              <div style="display:flex;gap:6px;margin-top:5px;">
+                <button type="button" class="btn btn-gray sched-wk" data-wk="1" onclick="setSchedWeeks(1)">1</button>
+                <button type="button" class="btn btn-gray sched-wk" data-wk="2" onclick="setSchedWeeks(2)">2</button>
+                <button type="button" class="btn btn-gray sched-wk" data-wk="3" onclick="setSchedWeeks(3)">3</button>
+                <button type="button" class="btn btn-gray sched-wk" data-wk="4" onclick="setSchedWeeks(4)">4</button>
+              </div>
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:12px;">
+            <label>Interview Days</label>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;">
+              <button type="button" class="btn btn-gray sched-day" data-day="1" onclick="toggleSchedDay(1)">Mon</button>
+              <button type="button" class="btn btn-gray sched-day" data-day="2" onclick="toggleSchedDay(2)">Tue</button>
+              <button type="button" class="btn btn-gray sched-day" data-day="3" onclick="toggleSchedDay(3)">Wed</button>
+              <button type="button" class="btn btn-gray sched-day" data-day="4" onclick="toggleSchedDay(4)">Thu</button>
+              <button type="button" class="btn btn-gray sched-day" data-day="5" onclick="toggleSchedDay(5)">Fri</button>
+              <button type="button" class="btn btn-gray sched-day" data-day="6" onclick="toggleSchedDay(6)">Sat</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 90px;gap:8px;align-items:end;margin-bottom:10px;">
+            <div class="field"><label>AM Session Time</label><input type="text" id="sched-am-time" placeholder="9:00 AM – 11:00 AM" style="font-family:inherit;" /></div>
+            <div class="field"><label>Max Seats</label><input type="number" id="sched-am-max" min="1" max="500" value="20" style="font-family:inherit;" /></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 90px;gap:8px;align-items:end;margin-bottom:16px;">
+            <div class="field"><label>PM Session Time</label><input type="text" id="sched-pm-time" placeholder="1:00 PM – 3:00 PM" style="font-family:inherit;" /></div>
+            <div class="field"><label>Max Seats</label><input type="number" id="sched-pm-max" min="1" max="500" value="20" style="font-family:inherit;" /></div>
+          </div>
+          <button type="button" class="btn btn-green" onclick="saveSchedule()">Save Schedule</button>
+          <span id="sched-saved" style="display:none;font-size:.78rem;color:var(--grab-dark);margin-left:10px;">✓ Saved!</span>
+        </div>
+
+      </div>
+    </div>
+  </div><!-- end tab-form -->
+
+
+
+</div><!-- end .main -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── Translations ──────────────────────────────────────────
+  const i18n = {
+    en: {
+      'hdr-sub':       'Driver Partner Recruitment',
+      'tn-form':       '📝  Apply Now',
+      'tn-qr':         '📱  QR Code & Hosting',
+      'banner-link':   'Set up →',
+      's1-title':      'Personal Information',
+      'lbl-name':      'English Full Name',
+      'e-name':        'Please enter your full name in English (as on ID).',
+      'lbl-nid':       'National ID Number',
+      'e-nid':         'Please enter your National ID number.',
+      'lbl-exp':       'ID Expiry Date',
+      'e-exp':         'ID must be valid for at least 6 months.',
+      'lbl-phone':     'Phone Number',
+      'e-phone':       'Please enter your phone number.',
+      'lbl-tg':        'Telegram',
+      'e-tg':          'Please enter your Telegram username or number.',
+      'lbl-commune':   'District (Khan) — Phnom Penh',
+      'e-commune':     'Please select your district.',
+      'lbl-svc':       'Preferred Service',
+      'e-svc':         'Please select your preferred service.',
+      'svc-bike-name': 'GrabBike',
+      'svc-bike-desc': 'Passenger rides',
+      'svc-food-name': 'GrabFood Delivery',
+      'svc-food-desc': 'Food & parcel delivery',
+      's4-title':      'Interview Schedule',
+      'lbl-slot':      'Interview Slot',
+      'hint-slot':     'Pick one date and time. Slots marked FULL cannot be selected.',
+      'e-slot':        'Please select an interview slot.',
+      'docs-title':    '📋 Required Documents',
+      'docs-list':     'Please bring <strong>all</strong> of the following on interview day:<ul style="margin-top:6px;padding-left:20px;"><li><strong>National ID</strong> (original + photocopy)</li><li><strong>Vehicle Registration Card</strong></li><li><strong>CV / Resume</strong></li></ul>',
+      'time-am-text':  '9:00 AM – 11:00 AM',
+      'time-am-sub':   'Morning session',
+      'time-pm-text':  '1:00 PM – 3:00 PM',
+      'time-pm-sub':   'Afternoon session',
+      'lbl-confirm':   'Attendance Confirmation',
+      'confirm-text':  'I confirm that I will attend the interview on my selected date and time, and will arrive 10 minutes early with all required documents.',
+      'e-confirm':     'Please confirm your attendance.',
+      'submit-btn':    'Submit Application',
+      'submit-note':   'By submitting you agree to be contacted by Grab for the interview process.',
+      'submitting':    'Submitting…',
+      'success-title': 'Application Submitted!',
+      'success-msg1':  'Thank you! Our team will review your application and contact you to confirm the interview.',
+      'success-msg2':  'Please bring your <strong>National ID</strong>, <strong>Vehicle Registration Card</strong>, and <strong>CV / Resume</strong> to the interview.',
+      'btn-another':   'Submit Another',
+      'sc-name':       'Name',
+      'sc-service':    'Service',
+      'sc-date':       'Interview Date',
+      'sc-time':       'Time Slot',
+      'sc-phone':      'Phone',
+      'sc-tg':         'Telegram',
+      'setup-toggle-lbl': '⚙️  Google Sheets Setup',
+    },
+    km: {
+      'hdr-sub':       'ការជ្រើសរើសដៃគូបើកបរ',
+      'tn-form':       '📝  ដាក់ពាក្យ',
+      'tn-qr':         '📱  QR Code & Hosting',
+      'banner-link':   'រៀបចំ →',
+      's1-title':      'ព័ត៌មានផ្ទាល់ខ្លួន',
+      'lbl-name':      'ឈ្មោះពេញ (ជាអក្សរឡាតាំង)',
+      'e-name':        'សូមបំពេញឈ្មោះពេញជាភាសាអង់គ្លេស (ដូចលើអត្តសញ្ញាណប័ណ្ណ)។',
+      'lbl-nid':       'លេខអត្តសញ្ញាណប័ណ្ណ',
+      'e-nid':         'សូមបំពេញលេខអត្តសញ្ញាណប័ណ្ណ។',
+      'lbl-exp':       'កាលបរិច្ឆេទផុតកំណត់',
+      'e-exp':         'អត្តសញ្ញាណប័ណ្ណត្រូវតែមានសុពលភាពយ៉ាងហោចណាស់ ៦ ខែទៀត។',
+      'lbl-phone':     'លេខទូរស័ព្ទ',
+      'e-phone':       'សូមបំពេញលេខទូរស័ព្ទ។',
+      'lbl-tg':        'Telegram',
+      'e-tg':          'សូមបំពេញ username ឬ លេខ Telegram។',
+      'lbl-commune':   'ខណ្ឌ — ភ្នំពេញ',
+      'e-commune':     'សូមជ្រើសរើសខណ្ឌ។',
+      'lbl-svc':       'ប្រភេទសេវាកម្ម',
+      'e-svc':         'សូមជ្រើសរើសសេវាដែលចូលចិត្ត។',
+      'svc-bike-name': 'GrabBike',
+      'svc-bike-desc': 'ដឹកអ្នកដំណើរ',
+      'svc-food-name': 'GrabFood Delivery',
+      'svc-food-desc': 'ដឹកអាហារ និងកញ្ចប់',
+      's4-title':      'កាលវិភាគសម្ភាស',
+      'lbl-slot':      'ពេលវេលាសំភាស',
+      'hint-slot':     'ជ្រើសរើសកាលបរិច្ឆេទ និងម៉ោង។ Slot ដែលមានសញ្ញា FULL មិនអាចជ្រើសរើស។',
+      'e-slot':        'សូមជ្រើសរើសពេលវេលាសំភាស។',
+      'docs-title':    '📋 ឯកសារដែលត្រូវការ',
+      'docs-list':     'សូមនាំ <strong>ឯកសារទាំងអស់</strong> នៅថ្ងៃសម្ភាស:<ul style="margin-top:6px;padding-left:20px;"><li><strong>អត្តសញ្ញាណប័ណ្ណ</strong> (ដើម + ច្បាប់ចម្លង)</li><li><strong>កាតគ្រីម៉ូតូ</strong></li><li><strong>ប្រវិត្តរូបសង្ខេប (CV)</strong></li></ul>',
+      'lbl-days':      'ថ្ងៃសំភាសដែលចូលចិត្ត',
+      'hint-days':     'ជ្រើសរើសថ្ងៃទាំងអស់ដែលអ្នកទំនេរ។',
+      'e-days':        'សូមជ្រើសរើសថ្ងៃសំភាសយ៉ាងហោចណាស់មួយ។',
+      'day-mon':       'ថ្ងៃច័ន្ទ',
+      'day-wed':       'ថ្ងៃពុធ',
+      'day-fri':       'ថ្ងៃសុក្រ',
+      'badge-avail':   'ទំនេរ',
+      'badge-opt':     'ស្រេចចិត្ត',
+      'lbl-time':      'វេលាដែលចូលចិត្ត',
+      'e-time':        'សូមជ្រើសរើសវេលា។',
+      'time-am-text':  '9:00 AM – 11:00 AM',
+      'time-am-sub':   'វេនព្រឹក',
+      'time-pm-text':  '1:00 PM – 3:00 PM',
+      'time-pm-sub':   'វេនរសៀល',
+      'lbl-confirm':   'ការបញ្ជាក់ការចូលរួម',
+      'confirm-text':  'ខ្ញុំបញ្ជាក់ថានឹងចូលរួមការសំភាសតាមថ្ងៃ និងម៉ោងដែលបានជ្រើស ហើយនឹងមកដល់មុន ១០ នាទី ជាមួយឯកសារទាំងអស់ដែលត្រូវការ។',
+      'e-confirm':     'សូមបញ្ជាក់ការចូលរួមរបស់អ្នក។',
+      'submit-btn':    'ដាក់ពាក្យ',
+      'submit-note':   'ដោយការដាក់ស្នើ អ្នកយល់ព្រមឱ្យ Grab ទំនាក់ទំនងអ្នកសម្រាប់ដំណើរការសំភាស។',
+      'submitting':    'កំពុងដាក់ស្នើ…',
+      'success-title': 'ដាក់ពាក្យបានជោគជ័យ!',
+      'success-msg1':  'អរគុណ! ក្រុមការងាររបស់យើងនឹងពិនិត្យពាក្យ​ ហើយទំនាក់ទំនងអ្នកដើម្បីបញ្ជាក់ការសំភាស។',
+      'success-msg2':  'សូមនាំ <strong>អត្តសញ្ញាណប័ណ្ណ</strong>, <strong>កាតគ្រីម៉ូតូ</strong>, និង <strong>ប្រវិត្តរូបសង្ខេប (CV)</strong> ទៅការសម្ភាស។',
+      'btn-another':   'ដាក់ពាក្យម្នាក់ទៀត',
+      'sc-name':       'ឈ្មោះ',
+      'sc-service':    'សេវា',
+      'sc-days':       'ថ្ងៃសំភាស',
+      'sc-time':       'វេលា',
+      'sc-phone':      'ទូរស័ព្ទ',
+      'sc-tg':         'Telegram',
+      'setup-toggle-lbl': '⚙️  Google Sheets Setup',
+    }
+  };
+
+  let currentLang = localStorage.getItem('grab_lang') || 'en';
+
+  function setLang(lang) {
+    currentLang = lang;
+    localStorage.setItem('grab_lang', lang);
+    const t = i18n[lang];
+
+    document.body.classList.toggle('lang-km', lang === 'km');
+
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (t[key] !== undefined) el.textContent = t[key];
+    });
+
+    document.querySelectorAll('[data-i18n-html]').forEach(el => {
+      const key = el.getAttribute('data-i18n-html');
+      if (t[key] !== undefined) el.innerHTML = t[key];
+    });
+
+    document.querySelectorAll('[data-ph-en]').forEach(el => {
+      el.placeholder = lang === 'en'
+        ? el.getAttribute('data-ph-en')
+        : (el.getAttribute('data-ph-km') || el.getAttribute('data-ph-en'));
+    });
+
+    // Banner rebuilt to preserve anchor onclick
+    const bannerHTML = {
+      en: `<strong>Google Sheet not connected.</strong> Submissions won't be saved until you set it up. <a onclick="openSetup()">Set up →</a>`,
+      km: `<strong>Google Sheet មិនទាន់ភ្ជាប់ទេ។</strong> ព័ត៌មានដែលដាក់ស្នើនឹងមិនត្រូវបានរក្សាទុក។ <a onclick="openSetup()">រៀបចំ →</a>`,
+    };
+    document.getElementById('banner-msg-span').innerHTML = bannerHTML[lang];
+
+    document.getElementById('lang-btn-text').textContent = lang === 'en' ? 'ខ្មែរ' : 'English';
+
+    populateDistrictSelect();
+    checkExpiry();
+  }
+
+  function toggleLang() {
+    setLang(currentLang === 'en' ? 'km' : 'en');
+  }
+
+  // ── State ────────────────────────────────────────────────
+  let SCRIPT_URL = localStorage.getItem('grab_sheet_url') || '';
+  let selService = '';
+  let selSlot    = null; // { dateLabel, session, time, key }
+  let activeWeek = 0;
+  let schedCounts = {};
+
+  const SCHED_DEFAULT = { startDate:'', weeks:2, days:[1,3,5], amTime:'9:00 AM � 11:00 AM', pmTime:'1:00 PM � 3:00 PM', amMax:20, pmMax:20 };
+  let schedConfig = Object.assign({}, SCHED_DEFAULT);
+
+  const DISTRICTS = [
+    { en:'Khan Chamkar Mon',      km:'ខណ្ឌចំការមន' },
+    { en:'Khan Daun Penh',        km:'ខណ្ឌដូនពេញ' },
+    { en:'Khan 7 Makara',         km:'ខណ្ឌ៧មករា' },
+    { en:'Khan Toul Kork',        km:'ខណ្ឌទួលគោក' },
+    { en:'Khan Boeng Keng Kang',  km:'ខណ្ឌបឹងកេងកង' },
+    { en:'Khan Mean Chey',        km:'ខណ្ឌមានជ័យ' },
+    { en:'Khan Russey Keo',       km:'ខណ្ឌរុស្សីកែវ' },
+    { en:'Khan Sen Sok',          km:'ខណ្ឌសែនសុខ' },
+    { en:'Khan Por Sen Chey',     km:'ខណ្ឌពោធ៍សែនជ័យ' },
+    { en:'Khan Chbar Ampov',      km:'ខណ្ឌច្បារអំពៅ' },
+    { en:'Khan Chroy Changvar',   km:'ខណ្ឌជ្រោយចង្វារ' },
+    { en:'Khan Prek Phnov',       km:'ខណ្ឌព្រែកព្នៅ' },
+    { en:'Khan Kambol',           km:'ខណ្ឌកំបូល' },
+    { en:'Khan Stueng Mean Chey', km:'ខណ្ឌស្ទឹងមានជ័យ' },
+  ];
+
+  function populateDistrictSelect() {
+    const sel = document.getElementById('f-commune');
+    if (!sel || sel.tagName !== 'SELECT') return;
+    const cur = sel.value;
+    const placeholder = currentLang === 'km' ? 'ជ្រើសរើសខណ្ឌ…' : 'Select your district…';
+    let html = '<option value="">' + placeholder + '</option>';
+    DISTRICTS.forEach(d => {
+      const label = currentLang === 'km' ? d.km : d.en;
+      html += '<option value="' + d.en + '"' + (cur === d.en ? ' selected' : '') + '>' + label + '</option>';
+    });
+    sel.innerHTML = html;
+  }
+
+  const MONTHS    = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const MONTHS_KM = ['មករា','កុម្ភៈ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
+  const DAYS_EN   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  let adminMode = false;
+  let tapCount = 0, tapTimer;
+
+  // ── Boot ─────────────────────────────────────────────────
+  (function init() {
+    document.getElementById('setup-section').style.display = 'none';
+    checkBanner();
+    if (SCRIPT_URL) document.getElementById('url-input').value = SCRIPT_URL;
+    document.getElementById('f-exp').min = new Date().toISOString().split('T')[0];
+    loadScheduleCfg();
+    setLang(currentLang);
+    populateDistrictSelect();
+    renderSlotPicker();
+    fetchScheduleCounts();
+  })();
+
+  const ADMIN_PASS = 'dax2024';
+
+  function adminTap() {
+    clearTimeout(tapTimer);
+    tapCount++;
+    if (tapCount >= 7) {
+      tapCount = 0;
+      if (adminMode) {
+        adminMode = false;
+        document.getElementById('setup-section').style.display = 'none';
+        checkBanner();
+        toast('Admin mode off');
+        return;
+      }
+      const entered = prompt('Enter admin password:');
+      if (entered !== ADMIN_PASS) {
+        toast('Wrong password.');
+        return;
+      }
+      adminMode = true;
+      document.getElementById('setup-section').style.display = 'block';
+      checkBanner();
+      loadSchedAdminUI();
+      toast('Admin mode on');
+      return;
+    }
+    tapTimer = setTimeout(() => { tapCount = 0; }, 2000);
+  }
+
+  function checkBanner() {
+    if (!adminMode) { document.getElementById('setup-banner').classList.add('hidden'); return; }
+    const inAppsScript = typeof google !== 'undefined' && google.script;
+    document.getElementById('setup-banner').classList.toggle('hidden', inAppsScript || !!SCRIPT_URL);
+  }
+
+
+  // ── ID Expiry ─────────────────────────────────────────────
+  function checkExpiry() {
+    const val   = document.getElementById('f-exp').value;
+    const badge = document.getElementById('exp-badge');
+    if (!val) { badge.className = 'exp-badge'; return; }
+    const expiry = new Date(val);
+    const today  = new Date(); today.setHours(0,0,0,0);
+    const min6   = new Date(); min6.setMonth(min6.getMonth() + 6);
+    if (expiry < today) {
+      badge.textContent = currentLang === 'en' ? '✗ Already expired' : '✗ ផុតកំណត់ហើយ';
+      badge.className   = 'exp-badge on exp-bad';
+      setErr('e-exp','f-exp',true);
+    } else if (expiry < min6) {
+      const mo = Math.floor((expiry - today) / (1e3*60*60*24*30.44));
+      badge.textContent = currentLang === 'en'
+        ? `⚠ ${mo} month(s) left — need 6+`
+        : `⚠ ${mo} ខែទៀត — ត្រូវការ ៦+`;
+      badge.className   = 'exp-badge on exp-warn';
+      setErr('e-exp','f-exp',true);
+    } else {
+      const mo = Math.floor((expiry - today) / (1e3*60*60*24*30.44));
+      badge.textContent = currentLang === 'en'
+        ? `✓ Valid — ${mo} months`
+        : `✓ មានសុពលភាព — ${mo} ខែ`;
+      badge.className   = 'exp-badge on exp-ok';
+      setErr('e-exp','f-exp',false);
+    }
+  }
+
+  // ── Card selectors ────────────────────────────────────────
+  function selectService(val, id) {
+    selService = val;
+    document.querySelectorAll('#svc-bike,#svc-food').forEach(c => c.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    setErr('e-svc',null,false);
+  }
+  function toggleConfirm(e) {
+    if (e.target.tagName === 'INPUT') return;
+    const cb = document.getElementById('f-confirm');
+    cb.checked = !cb.checked;
+    syncConfirm();
+  }
+  function syncConfirm() {
+    const on = document.getElementById('f-confirm').checked;
+    document.getElementById('confirm-wrap').classList.toggle('active', on);
+    if (on) setErr('e-confirm',null,false);
+  }
+
+  // ── Error helpers ─────────────────────────────────────────
+  function setErr(errId, inputId, show) {
+    document.getElementById(errId).classList.toggle('on', show);
+    if (inputId) document.getElementById(inputId).classList.toggle('err', show);
+  }
+
+  // ── Validation ────────────────────────────────────────────
+  function validate() {
+    let ok = true;
+    const v = id => document.getElementById(id).value.trim();
+    if (!v('f-name'))    { setErr('e-name','f-name',true);      ok=false; } else setErr('e-name','f-name',false);
+    if (!v('f-nid'))     { setErr('e-nid','f-nid',true);        ok=false; } else setErr('e-nid','f-nid',false);
+    if (!v('f-phone'))   { setErr('e-phone','f-phone',true);    ok=false; } else setErr('e-phone','f-phone',false);
+    if (!v('f-tg'))      { setErr('e-tg','f-tg',true);          ok=false; } else setErr('e-tg','f-tg',false);
+    if (!v('f-commune')) { setErr('e-commune','f-commune',true); ok=false; } else setErr('e-commune','f-commune',false);
+    const expVal = document.getElementById('f-exp').value;
+    if (!expVal) {
+      setErr('e-exp','f-exp',true); ok=false;
+    } else {
+      const expiry = new Date(expVal);
+      const min6   = new Date(); min6.setMonth(min6.getMonth()+6);
+      if (expiry < min6) { setErr('e-exp','f-exp',true); ok=false; } else setErr('e-exp','f-exp',false);
+    }
+    if (!selService) { setErr('e-svc',null,true);  ok=false; } else setErr('e-svc',null,false);
+    if (!selSlot)    { setErr('e-slot',null,true); ok=false; } else setErr('e-slot',null,false);
+    if (!document.getElementById('f-confirm').checked) { setErr('e-confirm',null,true); ok=false; } else setErr('e-confirm',null,false);
+    return ok;
+  }
+
+  // ── Iframe POST ───────────────────────────────────────────
+  function iframePost(url, data) {
+    return new Promise(resolve => {
+      const uid    = 'frm' + Date.now();
+      const iframe = document.createElement('iframe');
+      iframe.id = iframe.name = uid;
+      iframe.style.cssText = 'display:none;position:fixed;';
+      document.body.appendChild(iframe);
+      const form  = document.createElement('form');
+      form.method = 'POST';
+      form.action = url;
+      form.target = uid;
+      const inp   = document.createElement('input');
+      inp.type    = 'hidden';
+      inp.name    = 'data';
+      inp.value   = JSON.stringify(data);
+      form.appendChild(inp);
+      document.body.appendChild(form);
+      iframe.addEventListener('load', () => { form.remove(); iframe.remove(); resolve(); }, { once:true });
+      setTimeout(() => { try { form.remove(); iframe.remove(); } catch(_){} resolve(); }, 10000);
+      form.submit();
+    });
+  }
+
+  // ── Submit ────────────────────────────────────────────────
+  document.getElementById('form').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!validate()) {
+      document.querySelector('.err-msg.on')
+        ?.closest('.scard-body,.field')
+        ?.scrollIntoView({ behavior:'smooth', block:'center' });
+      return;
+    }
+    const btn = document.getElementById('submit-btn');
+    btn.disabled    = true;
+    btn.textContent = i18n[currentLang]['submitting'];
+    const payload = {
+      fullName:   document.getElementById('f-name').value.trim(),
+      nationalId: document.getElementById('f-nid').value.trim(),
+      idExpiry:   document.getElementById('f-exp').value,
+      phone:      document.getElementById('f-phone').value.trim(),
+      telegram:   document.getElementById('f-tg').value.trim(),
+      commune:    document.getElementById('f-commune').value.trim(),
+      service:    selService,
+      days:       selSlot ? selSlot.dateLabel : '',
+      timeSlot:   selSlot ? selSlot.time : '',
+      confirmed:  'Yes',
+    };
+    const inAppsScript = typeof google !== 'undefined' && google.script;
+    if (inAppsScript) {
+      await new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject)
+          .submitApplication(payload);
+      });
+    } else if (SCRIPT_URL) {
+      await iframePost(SCRIPT_URL, payload);
+    }
+    showSuccess(payload);
+    btn.disabled    = false;
+    btn.textContent = i18n[currentLang]['submit-btn'];
+  });
+
+  // ── Success ───────────────────────────────────────────────
+  function showSuccess(d) {
+    document.getElementById('form').style.display = 'none';
+    document.getElementById('success-screen').classList.add('on');
+    const t = i18n[currentLang];
+    document.getElementById('success-card').innerHTML = `
+      <div class="sc-row"><span class="sc-lbl">${t['sc-name']}</span>    <span class="sc-val">${d.fullName}</span></div>
+      <div class="sc-row"><span class="sc-lbl">${t['sc-service']}</span> <span class="sc-val">${d.service}</span></div>
+      <div class="sc-row"><span class="sc-lbl">${t['sc-date']||'Interview Date'}</span> <span class="sc-val">${d.days}</span></div>
+      <div class="sc-row"><span class="sc-lbl">${t['sc-time']}</span>    <span class="sc-val">${d.timeSlot}</span></div>
+      <div class="sc-row"><span class="sc-lbl">${t['sc-phone']}</span>   <span class="sc-val">${d.phone}</span></div>
+      <div class="sc-row"><span class="sc-lbl">${t['sc-tg']}</span>      <span class="sc-val">${d.telegram}</span></div>`;
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+
+  function resetForm() {
+    document.getElementById('form').reset();
+    document.getElementById('form').style.display = 'block';
+    document.getElementById('success-screen').classList.remove('on');
+    document.querySelectorAll('.sel-card').forEach(c => c.classList.remove('active'));
+    document.getElementById('confirm-wrap').classList.remove('active');
+    document.getElementById('exp-badge').className = 'exp-badge';
+    selService = ''; selSlot = null; renderSlotPicker();
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+
+  // ── Setup section ─────────────────────────────────────────
+  function openSetup() {
+    setTimeout(() => {
+      document.getElementById('setup-section').scrollIntoView({ behavior:'smooth' });
+      document.getElementById('setup-body').classList.add('on');
+      document.getElementById('setup-arrow').textContent = '▲';
+    }, 100);
+  }
+  function toggleSetup() {
+    const body = document.getElementById('setup-body');
+    body.classList.toggle('on');
+    document.getElementById('setup-arrow').textContent = body.classList.contains('on') ? '▲' : '▼';
+  }
+  function saveUrl() {
+    const url = document.getElementById('url-input').value.trim();
+    if (!url.startsWith('https://script.google.com')) { toast('Enter a valid Apps Script URL.'); return; }
+    SCRIPT_URL = url;
+    localStorage.setItem('grab_sheet_url', url);
+    document.getElementById('url-ok').style.display = 'block';
+    checkBanner();
+    toast('Google Sheet connected!');
+  }
+  async function testUrl() {
+    const url = document.getElementById('url-input').value.trim();
+    const el  = document.getElementById('url-test-result');
+    el.style.display = 'block';
+    if (!url.startsWith('https://script.google.com')) { el.style.color='#dc2626'; el.textContent='✗ Enter a valid URL first.'; return; }
+    el.style.color='#6b7280'; el.textContent='Testing…';
+    try {
+      await fetch(url, { mode:'no-cors' });
+      el.style.color='#15803d'; el.textContent='✓ URL is reachable. Submit a test form to confirm rows appear in your sheet.';
+    } catch(err) {
+      el.style.color='#dc2626'; el.textContent='✗ Cannot reach URL — check your internet or re-deploy the script.';
+    }
+  }
+  function copyScript() {
+    navigator.clipboard.writeText(document.getElementById('script-code').textContent)
+      .then(() => toast('Script copied!'));
+  }
+
+
+  // ── Toast ─────────────────────────────────────────────────
+
+  // -- Schedule --
+  function loadScheduleCfg() {
+    try { schedConfig = Object.assign({}, SCHED_DEFAULT, JSON.parse(localStorage.getItem('dax_schedule') || '{}')); }
+    catch(e) {}
+  }
+
+  async function fetchScheduleCounts() {
+    if (!SCRIPT_URL) return;
+    try {
+      const r = await fetch(SCRIPT_URL, { redirect:'follow' });
+      const j = await r.json();
+      if (j && j.counts) { schedCounts = j.counts; renderSlotPicker(); }
+    } catch(e) {}
+  }
+
+  function renderSlotPicker() {
+    const el = document.getElementById('slot-picker');
+    if (!el) return;
+    if (!schedConfig.startDate) {
+      el.innerHTML = '<div class="slot-no-cfg">' + (currentLang==='en'
+        ? 'No interview schedule configured yet.<br>Admin must set up the schedule first.'
+        : 'មិនទាន់មានកាលវិភាគសំភាស។<br>Admin ត្រូវរៀបចំជាមុនសិន។') + '</div>';
+      return;
+    }
+    const start = new Date(schedConfig.startDate + 'T00:00:00');
+    const mo  = i => currentLang === 'km' ? MONTHS_KM[i] : MONTHS[i];
+    const fmt = d => mo(d.getMonth()) + ' ' + d.getDate();
+    const totalWeeks = schedConfig.weeks;
+
+    // Clamp activeWeek in case config changed
+    if (activeWeek >= totalWeeks) activeWeek = 0;
+
+    // Build week dropdown options
+    let opts = '';
+    for (let w = 0; w < totalWeeks; w++) {
+      const ws = new Date(start); ws.setDate(ws.getDate() + w * 7);
+      const we = new Date(ws);    we.setDate(we.getDate() + 6);
+      opts += '<option value="' + w + '"' + (w === activeWeek ? ' selected' : '') + '>'
+            + (currentLang==='km' ? 'សប្តាហ៍' : 'Week') + ' ' + (w+1)
+            + '  \u2014  ' + fmt(ws) + ' \u2013 ' + fmt(we) + ', ' + we.getFullYear()
+            + '</option>';
+    }
+    let html = '<div class="week-select-wrap"><select class="week-select" onchange="setWeek(parseInt(this.value))">' + opts + '</select></div>';
+
+    // Render only the active week's slots
+    const ws = new Date(start); ws.setDate(ws.getDate() + activeWeek * 7);
+    let hasDate = false;
+    for (let d = 0; d < 7; d++) {
+      const dt = new Date(ws); dt.setDate(dt.getDate() + d);
+      if (!schedConfig.days.includes(dt.getDay())) continue;
+      hasDate = true;
+      const fullLabel = DAYS_EN[dt.getDay()] + ', ' + MONTHS[dt.getMonth()] + ' ' + dt.getDate() + ', ' + dt.getFullYear();
+      const amKey = fullLabel + '|AM';
+      const pmKey = fullLabel + '|PM';
+      const amLeft = schedConfig.amMax - (schedCounts[amKey] || 0);
+      const pmLeft = schedConfig.pmMax - (schedCounts[pmKey] || 0);
+      const amFull = amLeft <= 0;
+      const pmFull = pmLeft <= 0;
+      const amActive = selSlot && selSlot.key === amKey;
+      const pmActive = selSlot && selSlot.key === pmKey;
+      const seatSvg = '<svg style="width:13px;height:13px;vertical-align:-1px;margin-right:3px;" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="1" width="10" height="6" rx="1.5"/><rect x="2" y="8" width="12" height="3" rx="1"/><rect x="3" y="11" width="2" height="4" rx="1"/><rect x="11" y="11" width="2" height="4" rx="1"/></svg>';
+      const seatsHtml = (left, max, full) => {
+        if (full) return '<span class="slot-seats seats-full">' + seatSvg + 'FULL</span>';
+        if (left <= Math.max(1, Math.ceil(max * 0.25))) return '<span class="slot-seats seats-low">' + seatSvg + left + ' left</span>';
+        return '<span class="slot-seats seats-ok">' + seatSvg + (currentLang==='km'?'ទំនេរ':'Available') + '</span>';
+      };
+      const le = s => s.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      html += '<div class="slot-row">'
+        + '<div class="slot-date-cell"><div class="slot-date">' + DAYS_EN[dt.getDay()] + ' ' + dt.getDate() + '</div>'
+        + '<div class="slot-date-mo">' + mo(dt.getMonth()) + ' ' + dt.getFullYear() + '</div></div>'
+        + '<button type="button" class="slot-btn' + (amActive?' active':'') + '" ' + (amFull?'disabled':'') + ' onclick="selectSlot(\'' + le(fullLabel) + '\',\'AM\',\'' + le(schedConfig.amTime) + '\')">'
+        + '<div class="slot-time">' + schedConfig.amTime + '</div>' + seatsHtml(amLeft,schedConfig.amMax,amFull) + '</button>'
+        + '<button type="button" class="slot-btn' + (pmActive?' active':'') + '" ' + (pmFull?'disabled':'') + ' onclick="selectSlot(\'' + le(fullLabel) + '\',\'PM\',\'' + le(schedConfig.pmTime) + '\')">'
+        + '<div class="slot-time">' + schedConfig.pmTime + '</div>' + seatsHtml(pmLeft,schedConfig.pmMax,pmFull) + '</button>'
+        + '</div>';
+    }
+    if (!hasDate) html += '<div style="font-size:.8rem;color:var(--muted);padding:6px 0 10px;">'
+      + (currentLang==='km' ? 'មិនមានថ្ងៃសំភាសសប្តាហ៍នេះ។' : 'No interview days in this week.') + '</div>';
+    el.innerHTML = html;
+  }
+
+  function setWeek(w) {
+    activeWeek = w;
+    renderSlotPicker();
+  }
+
+  function selectSlot(dateLabel, session, time) {
+    selSlot = { dateLabel, session, time, key: dateLabel + '|' + session };
+    setErr('e-slot', null, false);
+    renderSlotPicker();
+  }
+
+  function loadSchedAdminUI() {
+    const el = document.getElementById('sched-start');
+    if (!el) return;
+    if (schedConfig.startDate) el.value = schedConfig.startDate;
+    document.querySelectorAll('.sched-wk').forEach(b => b.classList.toggle('active', parseInt(b.dataset.wk) === schedConfig.weeks));
+    document.querySelectorAll('.sched-day').forEach(b => b.classList.toggle('active', schedConfig.days.includes(parseInt(b.dataset.day))));
+    document.getElementById('sched-am-time').value = schedConfig.amTime;
+    document.getElementById('sched-pm-time').value = schedConfig.pmTime;
+    document.getElementById('sched-am-max').value  = schedConfig.amMax;
+    document.getElementById('sched-pm-max').value  = schedConfig.pmMax;
+  }
+
+  function setSchedWeeks(n) {
+    schedConfig.weeks = n;
+    document.querySelectorAll('.sched-wk').forEach(b => b.classList.toggle('active', parseInt(b.dataset.wk) === n));
+  }
+
+  function toggleSchedDay(n) {
+    const idx = schedConfig.days.indexOf(n);
+    if (idx >= 0) schedConfig.days.splice(idx, 1); else schedConfig.days.push(n);
+    schedConfig.days.sort((a,b) => a-b);
+    document.querySelectorAll('.sched-day').forEach(b => b.classList.toggle('active', schedConfig.days.includes(parseInt(b.dataset.day))));
+  }
+
+  function saveSchedule() {
+    schedConfig.startDate = document.getElementById('sched-start').value;
+    schedConfig.amTime    = document.getElementById('sched-am-time').value.trim() || '9:00 AM - 11:00 AM';
+    schedConfig.pmTime    = document.getElementById('sched-pm-time').value.trim() || '1:00 PM - 3:00 PM';
+    schedConfig.amMax     = Math.max(1, parseInt(document.getElementById('sched-am-max').value) || 20);
+    schedConfig.pmMax     = Math.max(1, parseInt(document.getElementById('sched-pm-max').value) || 20);
+    localStorage.setItem('dax_schedule', JSON.stringify(schedConfig));
+    const ok = document.getElementById('sched-saved');
+    ok.style.display = 'inline';
+    setTimeout(() => { ok.style.display = 'none'; }, 2500);
+    renderSlotPicker();
+    toast('Schedule saved!');
+  }
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('on');
+    setTimeout(() => el.classList.remove('on'), 3000);
+  }
+</script>
+</body>
+</html>
+
