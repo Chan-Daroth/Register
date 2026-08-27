@@ -79,6 +79,11 @@
     @media(max-width:480px){ .field-row{grid-template-columns:1fr;} }
     .hint { font-size:.75rem; color:var(--muted); }
     .err-msg { font-size:.75rem; color:var(--err); display:none; }
+    .digit-hint { font-size:.75rem; margin-top:3px; display:none; }
+    .digit-hint.on   { display:block; }
+    .digit-hint.ok   { color:#15803d; }
+    .digit-hint.over { color:var(--err); font-weight:700; }
+    .digit-hint.under{ color:var(--muted); }
     .err-msg.on { display:block; }
     .exp-badge { font-size:.75rem; font-weight:700; padding:2px 8px; border-radius:100px; display:none; margin-top:2px; }
     .exp-badge.on { display:inline-block; }
@@ -157,6 +162,10 @@
     .sc-lbl { color:var(--muted); }
     .sc-val { font-weight:700; }
 
+    /* ── Already-submitted screen ── */
+    .already-screen { display:none; padding:20px 0; text-align:center; }
+    .already-screen.on { display:block; }
+
     /* ── QR Tab ── */
     .qr-step { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:16px; overflow:hidden; }
     .qr-step-hdr { background:var(--grab); color:#fff; padding:12px 18px; display:flex; align-items:center; gap:10px; font-weight:700; font-size:.95rem; }
@@ -221,9 +230,14 @@
 <div class="hdr">
   <div class="hdr-logo" id="hdr-logo" onclick="adminTap()" style="cursor:default;user-select:none;">Grab</div>
   <div class="hdr-sub" data-i18n="hdr-sub">Driver Partner Recruitment</div>
-  <button class="lang-btn" id="lang-btn" onclick="toggleLang()"><span id="lang-btn-text">ខ្មែរ</span></button>
 </div>
 
+
+<!-- Tab nav -->
+<div class="tab-nav">
+  <button class="active" id="tn-form" onclick="switchTab('form')">📝 ការដាក់ពាក្យ</button>
+  <button id="tn-guide" onclick="switchTab('guide')">📋 របៀបបំពេញ</button>
+</div>
 
 <!-- Setup banner -->
 <div class="setup-banner" id="setup-banner">
@@ -258,7 +272,8 @@
           <div class="field-row">
             <div class="field">
               <label><span data-i18n="lbl-nid">National ID Number</span> <span class="req">*</span></label>
-              <input type="text" id="f-nid" placeholder="123456789" maxlength="20" />
+              <input type="text" id="f-nid" placeholder="123456789" maxlength="9" inputmode="numeric" oninput="sanitizeNid()" />
+              <span class="digit-hint" id="hint-nid"></span>
               <span class="err-msg" id="e-nid" data-i18n="e-nid">Please enter your National ID number.</span>
             </div>
             <div class="field">
@@ -272,7 +287,8 @@
           <div class="field-row">
             <div class="field">
               <label><span data-i18n="lbl-phone">Phone Number</span> <span class="req">*</span></label>
-              <input type="tel" id="f-phone" placeholder="012 345 678" autocomplete="tel" />
+              <input type="tel" id="f-phone" placeholder="012 345 678" autocomplete="tel" maxlength="10" inputmode="numeric" oninput="sanitizePhone()" />
+              <span class="digit-hint" id="hint-phone"></span>
               <span class="err-msg" id="e-phone" data-i18n="e-phone">Please enter your phone number.</span>
             </div>
             <div class="field">
@@ -356,6 +372,19 @@
       <div class="success-card" id="success-card"></div>
       <div class="success-msg" id="success-msg2" data-i18n-html="success-msg2">Please bring your <strong>National ID</strong>, <strong>vehicle documents</strong>, and <strong>driver's license</strong> to the interview.</div>
       <button class="btn-submit" style="max-width:300px;margin:22px auto 0;display:block;" onclick="resetForm()" data-i18n="btn-another">Submit Another</button>
+    </div>
+
+    <!-- Already-submitted screen -->
+    <div class="already-screen" id="already-screen">
+      <div class="success-icon">⚠️</div>
+      <div class="success-title" id="already-title">Already Submitted</div>
+      <div class="success-msg" id="already-msg1"></div>
+      <div class="success-card" id="already-card"></div>
+      <div class="success-msg" id="already-msg2" style="margin-top:12px;"></div>
+      <div style="display:flex;gap:10px;max-width:340px;margin:22px auto 0;">
+        <button class="btn-submit" id="already-new-btn" style="flex:1;" onclick="forceNewSubmission()"></button>
+        <button class="btn-submit" id="already-back-btn" style="flex:1;background:#374151;" onclick="goBackToForm()">← Back</button>
+      </div>
     </div>
 
     <!-- Google Sheets setup (bottom of form tab) -->
@@ -507,6 +536,263 @@ function doGet(e) {
     </div>
   </div><!-- end tab-form -->
 
+<!-- TAB: GUIDELINE -->
+<div id="tab-guide" style="display:none;">
+
+  <div class="scard">
+    <div class="scard-hdr">
+      <div class="scard-num" style="font-size:.9rem;">📋</div>
+      <div class="scard-title">របៀបបំពេញទម្រង់ក្នុងការចុះឈ្មោះ</div>
+    </div>
+    <div class="scard-body">
+      <p style="font-size:.88rem;line-height:1.8;color:#374151;">
+        សូមអានការណែនាំខាងក្រោមនេះមុនពេលបំពេញទម្រង់ ដើម្បីធានាថាការដាក់ពាក្យស្នើសុំរបស់លោកអ្នកបានទទួលជោគជ័យ។
+      </p>
+    </div>
+  </div>
+
+  <!-- 1. Personal Info -->
+  <div class="scard">
+    <div class="scard-hdr">
+      <div class="scard-num">1</div>
+      <div class="scard-title">ព័ត៌មានផ្ទាល់ខ្លួន</div>
+    </div>
+    <div class="scard-body">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+
+        <div style="background:#f8fafc;border-radius:8px;padding:14px;">
+          <div style="font-weight:700;font-size:.88rem;margin-bottom:8px;">🪪 ឈ្មោះពេញជាអក្សរឡាតាំង</div>
+
+          <div style="font-size:.82rem;color:#374151;line-height:1.9;margin-bottom:10px;">
+            សូមបំពេញឈ្មោះរបស់លោកអ្នកដូចទៅនឹងអត្តសញ្ញាណប័ណ្ណ ជាអក្សរឡាតាំង។
+          </div>
+
+          <!-- Format guide -->
+          <div style="background:#e8f8ef;border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:.81rem;line-height:1.9;">
+            <div style="font-weight:700;color:var(--grab-dark);margin-bottom:4px;">📐 ទម្រង់ឈ្មោះ</div>
+            <div><span style="background:#fff;border:1px solid #86efac;border-radius:4px;padding:1px 8px;font-weight:700;letter-spacing:.05em;">នាមត្រកូល</span> &nbsp;បន្ទាប់ &nbsp;<span style="background:#fff;border:1px solid #86efac;border-radius:4px;padding:1px 8px;font-weight:700;letter-spacing:.05em;">នាមខ្លួន</span></div>
+            <div style="margin-top:6px;">📌 ឧទាហរណ៍: <strong style="font-size:.9rem;letter-spacing:.05em;">CHAN DARA</strong> &nbsp;(CHAN = នាមត្រកូល, DARA = នាមខ្លួន)</div>
+          </div>
+
+          <!-- Do / Don't -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.79rem;">
+            <div style="background:#dcfce7;border-radius:6px;padding:9px 10px;">
+              <div style="font-weight:700;color:#15803d;margin-bottom:4px;">✅ ត្រឹមត្រូវ</div>
+              <div style="font-family:monospace;font-size:.85rem;font-weight:700;letter-spacing:.04em;">CHAN DARA</div>
+              <div style="color:#15803d;margin-top:3px;">អក្សរធំទាំងអស់</div>
+            </div>
+            <div style="background:#fee2e2;border-radius:6px;padding:9px 10px;">
+              <div style="font-weight:700;color:#dc2626;margin-bottom:4px;">❌ មិនត្រឹមត្រូវ</div>
+              <div style="font-family:monospace;font-size:.85rem;">Chan Dara</div>
+              <div style="color:#dc2626;margin-top:3px;">លាយអក្សរធំ-តូច</div>
+            </div>
+          </div>
+
+          <div style="margin-top:8px;background:#fffbeb;border-radius:6px;padding:8px 10px;font-size:.79rem;color:#92400e;line-height:1.7;">
+            ⚠️ <strong>ពុំត្រូវវាយជាអក្សរខ្មែរ</strong> ឬ លាយអក្សរ — ត្រូវវាយជាអក្សរឡាតាំង<strong>ធំទាំងអស់</strong> ដូចលើអត្តសញ្ញាណប័ណ្ណ
+          </div>
+        </div>
+
+        <div style="background:#f8fafc;border-radius:8px;padding:12px;">
+          <div style="font-weight:700;font-size:.88rem;margin-bottom:4px;">លេខអត្តសញ្ញាណប័ណ្ណ</div>
+          <div style="font-size:.82rem;color:#374151;line-height:1.8;">
+            ✏️ វាយ<strong>តែលេខ</strong>ពីអត្តសញ្ញាណប័ណ្ណ<br>
+            ⚠️ មិនត្រូវវាយអក្សរ ឬ សញ្ញាផ្សេង
+          </div>
+        </div>
+
+        <div style="background:#f8fafc;border-radius:8px;padding:12px;">
+          <div style="font-weight:700;font-size:.88rem;margin-bottom:4px;">កាលបរិច្ឆេទផុតកំណត់</div>
+          <div style="font-size:.82rem;color:#374151;line-height:1.8;">
+            ✏️ ជ្រើសរើសកាលបរិច្ឆេទផុតកំណត់នៅលើអត្តសញ្ញាណប័ណ្ណ<br>
+            ⚠️ <strong>ត្រូវតែ</strong>មានសុពលភាពយ៉ាងហោចណាស់ <strong>៦ ខែ</strong>ទៀត<br>
+            ✅ ប្រព័ន្ធនឹងបង្ហាញ នៅសុពលភាព ឬ ផុតសុពលភាព ដោយស្វ័យប្រវត្តិ
+          </div>
+        </div>
+
+        <div style="background:#f8fafc;border-radius:8px;padding:12px;">
+          <div style="font-weight:700;font-size:.88rem;margin-bottom:4px;">លេខទូរស័ព្ទ & តេឡេក្រាម</div>
+          <div style="font-size:.82rem;color:#374151;line-height:1.8;">
+            ✏️ ទូរស័ព្ទ: <strong>012 345 678</strong><br>
+            ✏️ Telegram: <strong>@username</strong> ឬ <strong>012345678</strong><br>
+            ⚠️ វាយឱ្យត្រឹមត្រូវ ដើម្បីក្រុមការងារអាចទំនាក់ទំនងបាន
+          </div>
+        </div>
+
+        <div style="background:#f8fafc;border-radius:8px;padding:12px;">
+          <div style="font-weight:700;font-size:.88rem;margin-bottom:4px;">ខណ្ឌ — ភ្នំពេញ</div>
+          <div style="font-size:.82rem;color:#374151;line-height:1.8;">
+            ✏️ ជ្រើស<strong>ខណ្ឌដែលអ្នករស់នៅ</strong>ក្នុងភ្នំពេញ<br>
+            📌 មានជម្រើស ១៤ ខណ្ឌ
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Service -->
+  <div class="scard">
+    <div class="scard-hdr">
+      <div class="scard-num">2</div>
+      <div class="scard-title">ប្រភេទសេវាកម្ម</div>
+    </div>
+    <div class="scard-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="background:var(--grab-light);border:1.5px solid #86efac;border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-size:1.8rem;">🏍️</div>
+          <div style="font-weight:700;font-size:.9rem;margin:6px 0 4px;color:var(--grab-dark);">GrabBike</div>
+          <div style="font-size:.78rem;color:#374151;line-height:1.6;">ដឹកអ្នកដំណើរ<br>តាមការសុំ</div>
+        </div>
+        <div style="background:var(--grab-light);border:1.5px solid #86efac;border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-size:1.8rem;">🛵</div>
+          <div style="font-weight:700;font-size:.9rem;margin:6px 0 4px;color:var(--grab-dark);">GrabFood</div>
+          <div style="font-size:.78rem;color:#374151;line-height:1.6;">ដឹកអាហារ<br>និងកញ្ចប់</div>
+        </div>
+      </div>
+      <div style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:8px;padding:12px;margin-top:10px;font-size:.82rem;color:#78350f;line-height:1.7;">
+        💡 ជ្រើស<strong>ប្រភេទតែមួយ</strong>ដែលអ្នកចូលចិត្ត
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Interview slot -->
+  <div class="scard">
+    <div class="scard-hdr">
+      <div class="scard-num">3</div>
+      <div class="scard-title">ការវិភាគសម្ភាស</div>
+    </div>
+    <div class="scard-body">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+
+        <!-- Step 1+2 -->
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <div style="background:var(--grab);color:#fff;min-width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;">1</div>
+          <div style="flex:1;">
+            <div style="font-size:.82rem;line-height:1.6;margin-bottom:5px;">ជ្រើសរើសកាលវិភាគសប្ដាហ៍នឹងថ្ងៃដែលលោកអ្នកអាចមកចូលរួមសម្ភាស។</div>
+            <div style="background:#f1f5f9;border:1.5px solid var(--border);border-radius:7px;padding:6px 10px;font-size:.75rem;color:var(--text);display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+              <span>សប្តាហ៍ 1 — ២៧ សីហា – ២ កញ្ញា ២០២៥</span>
+              <span style="color:var(--muted);">▼</span>
+            </div>
+            <div style="display:grid;grid-template-columns:60px 1fr 1fr;gap:5px;align-items:center;">
+              <div style="font-size:.75rem;font-weight:700;">ថ្ងៃពុធ ២៧<br><span style="color:var(--muted);font-weight:400;">សីហា ២០២៥</span></div>
+              <div style="border:2px solid var(--grab);background:var(--grab-light);border-radius:7px;padding:5px 4px;text-align:center;">
+                <div style="font-size:.72rem;font-weight:700;">9:00 AM</div>
+                <div style="font-size:.62rem;color:#15803d;font-weight:700;margin-top:2px;">🟢 ទំនេរ</div>
+              </div>
+              <div style="border:2px solid var(--border);border-radius:7px;padding:5px 4px;text-align:center;">
+                <div style="font-size:.72rem;font-weight:700;">1:00 PM</div>
+                <div style="font-size:.62rem;color:#15803d;font-weight:700;margin-top:2px;">🟢 ទំនេរ</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <div style="background:var(--grab);color:#fff;min-width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;">2</div>
+          <div style="flex:1;">
+            <div style="font-size:.82rem;line-height:1.6;margin-bottom:5px;">ជ្រើស<strong>វេនព្រឹក</strong> ឬ <strong>វេនរសៀល</strong></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
+              <div style="border:2px solid var(--grab);background:var(--grab-light);border-radius:7px;padding:6px 4px;text-align:center;">
+                <div style="font-size:.72rem;font-weight:700;">9:00 AM</div>
+                <div style="font-size:.62rem;color:var(--grab-dark);margin-top:1px;">វេនព្រឹក ✓</div>
+              </div>
+              <div style="border:2px solid var(--border);border-radius:7px;padding:6px 4px;text-align:center;">
+                <div style="font-size:.72rem;font-weight:700;">1:00 PM</div>
+                <div style="font-size:.62rem;color:var(--muted);margin-top:1px;">វេនរសៀល</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Full / Available -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div style="background:#fee2e2;border-radius:8px;padding:9px;font-size:.78rem;color:#991b1b;line-height:1.6;">
+            🚫 កៅអីដែលមានសញ្ញា <strong>ពេញ</strong> មិនអាចជ្រើស
+            <div style="border:2px solid #fca5a5;border-radius:7px;padding:6px 4px;text-align:center;margin-top:6px;background:#fff;opacity:.6;">
+              <div style="font-size:.72rem;font-weight:700;color:#374151;">9:00 AM</div>
+              <div style="font-size:.62rem;color:#dc2626;font-weight:700;margin-top:2px;">⬛ ពេញ</div>
+            </div>
+          </div>
+          <div style="background:#dcfce7;border-radius:8px;padding:9px;font-size:.78rem;color:#14532d;line-height:1.6;">
+            ✅ កៅអីអាចជ្រើសបានបង្ហាញ <strong>ទំនេរ</strong>
+            <div style="border:2px solid #86efac;border-radius:7px;padding:6px 4px;text-align:center;margin-top:6px;background:#fff;">
+              <div style="font-size:.72rem;font-weight:700;color:#374151;">9:00 AM</div>
+              <div style="font-size:.62rem;color:#15803d;font-weight:700;margin-top:2px;">🟢 ទំនេរ</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Documents -->
+  <div class="scard">
+    <div class="scard-hdr">
+      <div class="scard-num">4</div>
+      <div class="scard-title">ឯកសារត្រូវនាំថ្ងៃសំភាស</div>
+    </div>
+    <div class="scard-body">
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;gap:12px;background:#f8fafc;border-radius:8px;padding:11px 12px;">
+          <span style="font-size:1.3rem;">🪪</span>
+          <div>
+            <div style="font-weight:700;font-size:.88rem;">អត្តសញ្ញាណប័ណ្ណ</div>
+            <div style="font-size:.78rem;color:var(--muted);">ដើម + ច្បាប់ចម្លង ១ ច្បាប់</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;background:#f8fafc;border-radius:8px;padding:11px 12px;">
+          <span style="font-size:1.3rem;">📄</span>
+          <div>
+            <div style="font-weight:700;font-size:.88rem;">កាតគ្រីម៉ូតូ</div>
+            <div style="font-size:.78rem;color:var(--muted);">Vehicle Registration Card</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;background:#f8fafc;border-radius:8px;padding:11px 12px;">
+          <span style="font-size:1.3rem;">📋</span>
+          <div>
+            <div style="font-weight:700;font-size:.88rem;">ប្រវិត្តរូបសង្ខេប (CV)</div>
+            <div style="font-size:.78rem;color:var(--muted);">Resume / CV</div>
+          </div>
+        </div>
+      </div>
+      <div style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:8px;padding:12px;margin-top:10px;font-size:.82rem;color:#78350f;line-height:1.7;">
+        ⚠️ <strong>សូមនាំឯកសារគ្រប់</strong>មុនចូលសំភាស។ ការខ្វះឯកសារអាចធ្វើឱ្យពន្យារពេល។
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. After submission -->
+  <div class="scard">
+    <div class="scard-hdr">
+      <div class="scard-num">5</div>
+      <div class="scard-title">បន្ទាប់ពីដាក់ស្នើ</div>
+    </div>
+    <div class="scard-body">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <span style="font-size:1.1rem;flex-shrink:0;">📲</span>
+          <div style="font-size:.85rem;line-height:1.7;">ក្រុមការងារ Grab <strong>នឹងទំនាក់ទំនង</strong>តាម Telegram ឬ ទូរស័ព្ទ</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <span style="font-size:1.1rem;flex-shrink:0;">⏰</span>
+          <div style="font-size:.85rem;line-height:1.7;">មក<strong>មុន ១០ នាទី</strong>នៅថ្ងៃសំភាស</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <span style="font-size:1.1rem;flex-shrink:0;">🚫</span>
+          <div style="font-size:.85rem;line-height:1.7;">ប្រសិនបើ<strong>មិនអាចមកបាន</strong> សូមទំនាក់ទំនងក្រុមការងារមុន</div>
+        </div>
+      </div>
+      <div style="background:var(--grab-light);border:1.5px solid #86efac;border-radius:8px;padding:13px;margin-top:12px;font-size:.88rem;font-weight:700;color:var(--grab-dark);text-align:center;">
+        ត្រៀមខ្លួនហើយ? <span onclick="switchTab('form')" style="text-decoration:underline;cursor:pointer;">ចុចនេះដើម្បីដាក់ពាក្យ →</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end tab-guide -->
+
 
 
 </div><!-- end .main -->
@@ -577,11 +863,11 @@ function doGet(e) {
       'lbl-name':      'ឈ្មោះពេញ (ជាអក្សរឡាតាំង)',
       'e-name':        'សូមបំពេញឈ្មោះពេញជាភាសាអង់គ្លេស (ដូចលើអត្តសញ្ញាណប័ណ្ណ)។',
       'lbl-nid':       'លេខអត្តសញ្ញាណប័ណ្ណ',
-      'e-nid':         'សូមបំពេញលេខអត្តសញ្ញាណប័ណ្ណ។',
+      'e-nid':         'លេខអត្តសញ្ញាណប័ណ្ណត្រូវតែមាន ៩ ខ្ទង់។',
       'lbl-exp':       'កាលបរិច្ឆេទផុតកំណត់',
       'e-exp':         'អត្តសញ្ញាណប័ណ្ណត្រូវតែមានសុពលភាពយ៉ាងហោចណាស់ ៦ ខែទៀត។',
       'lbl-phone':     'លេខទូរស័ព្ទ',
-      'e-phone':       'សូមបំពេញលេខទូរស័ព្ទ។',
+      'e-phone':       'លេខទូរស័ព្ទត្រូវតែមាន ៩ ដល់ ១០ ខ្ទង់។',
       'lbl-tg':        'Telegram',
       'e-tg':          'សូមបំពេញ username ឬ លេខ Telegram។',
       'lbl-commune':   'ខណ្ឌ — ភ្នំពេញ',
@@ -592,10 +878,10 @@ function doGet(e) {
       'svc-bike-desc': 'ដឹកអ្នកដំណើរ',
       'svc-food-name': 'GrabFood Delivery',
       'svc-food-desc': 'ដឹកអាហារ និងកញ្ចប់',
-      's4-title':      'កាលវិភាគសម្ភាស',
-      'lbl-slot':      'ពេលវេលាសំភាស',
-      'hint-slot':     'ជ្រើសរើសកាលបរិច្ឆេទ និងម៉ោង។ Slot ដែលមានសញ្ញា FULL មិនអាចជ្រើសរើស។',
-      'e-slot':        'សូមជ្រើសរើសពេលវេលាសំភាស។',
+      's4-title':      'ការវិភាគសម្ភាស',
+      'lbl-slot':      'កៅអី',
+      'hint-slot':     'ជ្រើសរើសកាលបរិច្ឆេទ និងម៉ោង។ កៅអី ដែលមានសញ្ញា ពេញ មិនអាចជ្រើសរើស។',
+      'e-slot':        'សូមជ្រើសរើសកៅអី។',
       'docs-title':    '📋 ឯកសារដែលត្រូវការ',
       'docs-list':     'សូមនាំ <strong>ឯកសារទាំងអស់</strong> នៅថ្ងៃសម្ភាស:<ul style="margin-top:6px;padding-left:20px;"><li><strong>អត្តសញ្ញាណប័ណ្ណ</strong> (ដើម + ច្បាប់ចម្លង)</li><li><strong>កាតគ្រីម៉ូតូ</strong></li><li><strong>ប្រវិត្តរូបសង្ខេប (CV)</strong></li></ul>',
       'lbl-days':      'ថ្ងៃសំភាសដែលចូលចិត្ត',
@@ -632,7 +918,7 @@ function doGet(e) {
     }
   };
 
-  let currentLang = localStorage.getItem('grab_lang') || 'en';
+  let currentLang = 'km';
 
   function setLang(lang) {
     currentLang = lang;
@@ -664,15 +950,13 @@ function doGet(e) {
     };
     document.getElementById('banner-msg-span').innerHTML = bannerHTML[lang];
 
-    document.getElementById('lang-btn-text').textContent = lang === 'en' ? 'ខ្មែរ' : 'English';
+    const langBtnText = document.getElementById('lang-btn-text');
+    if (langBtnText) langBtnText.textContent = lang === 'en' ? 'ខ្មែរ' : 'English';
 
     populateDistrictSelect();
     checkExpiry();
   }
 
-  function toggleLang() {
-    setLang(currentLang === 'en' ? 'km' : 'en');
-  }
 
   // ── State ────────────────────────────────────────────────
   let SCRIPT_URL = localStorage.getItem('grab_sheet_url') || '';
@@ -680,6 +964,171 @@ function doGet(e) {
   let selSlot    = null; // { dateLabel, session, time, key }
   let activeWeek = 0;
   let schedCounts = {};
+
+  // ── Spam prevention ───────────────────────────────────────
+  const SUBMISSIONS_KEY = 'grab_submissions';
+  const COOLDOWN_SHORT  = 30 * 60 * 1000;     // 30 min — up to 3 submissions
+  const COOLDOWN_LONG   = 7 * 60 * 60 * 1000; // 7 hours — more than 3 submissions
+  const SPAM_THRESHOLD  = 3;
+
+  function getApplicableCooldown() {
+    return getSavedSubmissions().length > SPAM_THRESHOLD ? COOLDOWN_LONG : COOLDOWN_SHORT;
+  }
+  let cooldownTimer;
+
+  function getSavedSubmissions() {
+    try { return JSON.parse(localStorage.getItem(SUBMISSIONS_KEY) || '[]'); } catch(e) { return []; }
+  }
+  function saveSubmission(sub) {
+    const subs = getSavedSubmissions();
+    subs.push(sub);
+    localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(subs));
+  }
+  function getLatestSubmission() {
+    const subs = getSavedSubmissions();
+    return subs.length ? subs.reduce((a, b) => a.timestamp > b.timestamp ? a : b) : null;
+  }
+  function findDuplicate(phone, nid) {
+    const cutoff = Date.now() - getApplicableCooldown();
+    return getSavedSubmissions().find(s => s.timestamp > cutoff && (s.phone === phone || s.nid === nid)) || null;
+  }
+
+  function parseDateLabel(label) {
+    try {
+      const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const p  = label.replace(/^[A-Za-z]+,\s*/, '').split(' ');
+      const m  = mo.indexOf(p[0]), d = parseInt(p[1]), y = parseInt(p[2]);
+      return (m < 0 || isNaN(d) || isNaN(y)) ? null : new Date(y, m, d);
+    } catch(e) { return null; }
+  }
+
+  function updateAlreadyBtn(cooldown) {
+    const latest = getLatestSubmission();
+    const btn = document.getElementById('already-new-btn');
+    if (!latest || !btn) return;
+    clearInterval(cooldownTimer);
+    const fmtRemaining = r => {
+      if (cooldown >= COOLDOWN_LONG) {
+        const h = Math.floor(r / 3600000), m = Math.floor((r % 3600000) / 60000);
+        return currentLang === 'en' ? h + 'h ' + m + 'm' : h + 'ម ' + m + 'ន';
+      }
+      const mins = Math.ceil(r / 60000);
+      return currentLang === 'en' ? mins + 'm' : mins + 'ន';
+    };
+    const tick = () => {
+      const r = cooldown - (Date.now() - latest.timestamp);
+      if (r <= 0) {
+        clearInterval(cooldownTimer);
+        btn.disabled = false;
+        btn.style.background = '#374151';
+        btn.textContent = currentLang === 'en' ? 'Submit a New Application' : 'ដាក់ពាក្យថ្មី';
+        return;
+      }
+      btn.disabled = true;
+      btn.style.background = '#9ca3af';
+      btn.textContent = currentLang === 'en'
+        ? 'Submit Again (available in ' + fmtRemaining(r) + ')'
+        : 'ដាក់ម្តងទៀត (' + fmtRemaining(r) + ' ទៀត)';
+    };
+    tick();
+    cooldownTimer = setInterval(tick, 30000);
+  }
+
+  function checkPreviousSubmission() {
+    const latest = getLatestSubmission();
+    if (!latest) return false;
+
+    const SIX_MONTHS_MS  = 6 * 30.44 * 24 * 60 * 60 * 1000;
+    const interviewDate  = parseDateLabel(latest.dateLabel);
+    const now            = Date.now();
+
+    // Interview date has passed → enforce 6-month re-application lock
+    if (interviewDate && interviewDate.getTime() < now) {
+      const reapplyDate = new Date(interviewDate.getTime() + SIX_MONTHS_MS);
+      if (now < reapplyDate.getTime()) {
+        showAlreadyScreen(latest, true, reapplyDate);
+        return true;
+      }
+      return false; // 6 months have passed — allow re-application
+    }
+
+    // Interview hasn't happened yet → progressive spam block
+    const cooldown = getApplicableCooldown();
+    if (now - latest.timestamp > cooldown) return false;
+    showAlreadyScreen(latest, false, null, cooldown);
+    return true;
+  }
+
+  function showAlreadyScreen(latest, isInterviewLock, reapplyDate, cooldown) {
+    document.getElementById('form').style.display = 'none';
+    document.getElementById('success-screen').classList.remove('on');
+    document.getElementById('already-screen').classList.add('on');
+    const t  = i18n[currentLang];
+    const en = currentLang === 'en';
+    document.getElementById('already-back-btn').textContent = en ? '← Back to Form' : '← ត្រឡប់ទៅទម្រង់';
+
+    if (isInterviewLock) {
+      const rd = reapplyDate.toLocaleDateString(en ? 'en-GB' : 'km-KH', { year:'numeric', month:'long', day:'numeric' });
+      document.getElementById('already-title').textContent =
+        en ? 'Interview Period Active' : 'រយៈពេលសំភាសសកម្ម';
+      document.getElementById('already-msg1').textContent = en
+        ? 'You have already attended an interview. You may reapply after 6 months from your interview date.'
+        : 'អ្នកបានចូលរួមការសំភាសរួចហើយ។ អ្នកអាចដាក់ពាក្យបានម្តងទៀតបន្ទាប់ពី ៦ ខែ។';
+      document.getElementById('already-card').innerHTML =
+        '<div class="sc-row"><span class="sc-lbl">' + (t['sc-name']||'Name') + '</span><span class="sc-val">' + latest.name + '</span></div>'
+        + '<div class="sc-row"><span class="sc-lbl">' + (t['sc-date']||'Interview Date') + '</span><span class="sc-val">' + latest.dateLabel + '</span></div>'
+        + '<div class="sc-row"><span class="sc-lbl">' + (en ? 'Re-apply From' : 'ដាក់ពាក្យបានពី') + '</span><span class="sc-val" style="color:var(--grab-dark)">' + rd + '</span></div>';
+      document.getElementById('already-msg2').textContent = en
+        ? 'If you have any questions, please contact us directly.'
+        : 'ប្រសិនបើមានសំណួរ សូមទំនាក់ទំនងយើងផ្ទាល់។';
+      const btn = document.getElementById('already-new-btn');
+      btn.disabled = true;
+      btn.style.background = '#9ca3af';
+      btn.textContent = en ? 'Re-apply opens ' + rd : 'ដាក់ពាក្យបាននៅ ' + rd;
+    } else {
+      document.getElementById('already-title').textContent =
+        en ? 'Already Submitted' : 'បានដាក់ពាក្យរួចហើយ';
+      document.getElementById('already-msg1').textContent = en
+        ? 'You already submitted an application from this device. Our team will contact you to confirm your interview.'
+        : 'អ្នកបានដាក់ពាក្យពីឧបករណ៍នេះរួចហើយ។ ក្រុមការងារយើងនឹងទំនាក់ទំនងអ្នក។';
+      document.getElementById('already-card').innerHTML =
+        '<div class="sc-row"><span class="sc-lbl">' + (t['sc-name']||'Name') + '</span><span class="sc-val">' + latest.name + '</span></div>'
+        + '<div class="sc-row"><span class="sc-lbl">' + (t['sc-date']||'Interview Date') + '</span><span class="sc-val">' + latest.dateLabel + '</span></div>'
+        + '<div class="sc-row"><span class="sc-lbl">' + (t['sc-time']||'Time Slot') + '</span><span class="sc-val">' + latest.timeSlot + '</span></div>'
+        + '<div class="sc-row"><span class="sc-lbl">' + (t['sc-phone']||'Phone') + '</span><span class="sc-val">' + latest.phone + '</span></div>';
+      document.getElementById('already-msg2').textContent = en
+        ? 'If you need to change your slot or made a mistake, please contact us directly.'
+        : 'ប្រសិនបើចង់ប្តូរពេលវេលា ឬមានកំហុស សូមទំនាក់ទំនងយើងផ្ទាល់។';
+      updateAlreadyBtn(cooldown);
+    }
+  }
+
+  function goBackToForm() {
+    clearInterval(cooldownTimer);
+    document.getElementById('already-screen').classList.remove('on');
+    document.getElementById('form').reset();
+    document.getElementById('form').style.display = 'block';
+    document.querySelectorAll('.sel-card').forEach(c => c.classList.remove('active'));
+    document.getElementById('confirm-wrap').classList.remove('active');
+    document.getElementById('exp-badge').className = 'exp-badge';
+    selService = ''; selSlot = null; renderSlotPicker();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function forceNewSubmission() {
+    if (!confirm(currentLang === 'en'
+      ? 'You already submitted once. Submitting again may create a duplicate record. Continue?'
+      : 'អ្នកបានដាក់ពាក្យម្តងរួចហើយ។ ការដាក់ម្តងទៀតអាចបង្កើតការស្នើស្នើច្រំដែល។ បន្តឬ?')) return;
+    clearInterval(cooldownTimer);
+    document.getElementById('already-screen').classList.remove('on');
+    document.getElementById('form').reset();
+    document.getElementById('form').style.display = 'block';
+    document.querySelectorAll('.sel-card').forEach(c => c.classList.remove('active'));
+    document.getElementById('confirm-wrap').classList.remove('active');
+    document.getElementById('exp-badge').className = 'exp-badge';
+    selService = ''; selSlot = null; renderSlotPicker();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   const SCHED_DEFAULT = { startDate:'', weeks:2, days:[1,3,5], amTime:'9:00 AM � 11:00 AM', pmTime:'1:00 PM � 3:00 PM', amMax:20, pmMax:20 };
   let schedConfig = Object.assign({}, SCHED_DEFAULT);
@@ -732,6 +1181,7 @@ function doGet(e) {
     populateDistrictSelect();
     renderSlotPicker();
     fetchScheduleCounts();
+    checkPreviousSubmission();
   })();
 
   const ADMIN_PASS = 'dax2024';
@@ -779,21 +1229,21 @@ function doGet(e) {
     const today  = new Date(); today.setHours(0,0,0,0);
     const min6   = new Date(); min6.setMonth(min6.getMonth() + 6);
     if (expiry < today) {
-      badge.textContent = currentLang === 'en' ? '✗ Already expired' : '✗ ផុតកំណត់ហើយ';
+      badge.textContent = currentLang === 'en' ? '✗ Already expired' : '✗ ផុតសុពលភាព';
       badge.className   = 'exp-badge on exp-bad';
       setErr('e-exp','f-exp',true);
     } else if (expiry < min6) {
       const mo = Math.floor((expiry - today) / (1e3*60*60*24*30.44));
       badge.textContent = currentLang === 'en'
         ? `⚠ ${mo} month(s) left — need 6+`
-        : `⚠ ${mo} ខែទៀត — ត្រូវការ ៦+`;
+        : `⚠ ${mo} ខែ — ជិតផុតសុពលភាព`;
       badge.className   = 'exp-badge on exp-warn';
       setErr('e-exp','f-exp',true);
     } else {
       const mo = Math.floor((expiry - today) / (1e3*60*60*24*30.44));
       badge.textContent = currentLang === 'en'
         ? `✓ Valid — ${mo} months`
-        : `✓ មានសុពលភាព — ${mo} ខែ`;
+        : `✓ នៅសុពលភាព — ${mo} ខែ`;
       badge.className   = 'exp-badge on exp-ok';
       setErr('e-exp','f-exp',false);
     }
@@ -818,6 +1268,40 @@ function doGet(e) {
     if (on) setErr('e-confirm',null,false);
   }
 
+  // ── Live digit checker ───────────────────────────────────
+  const LIVE_CFG = {
+    phone: { hintId:'hint-phone', min:9, max:10, label:'ខ្ទង់', over:'លើសពីការកំណត់! ត្រូវការ ៩–១០ ខ្ទង់' },
+    nid:   { hintId:'hint-nid',   min:9, max:9,  label:'ខ្ទង់', over:'លើសពីការកំណត់! ត្រូវការ ៩ ខ្ទង់ប៉ុណ្ណោះ' }
+  };
+  function sanitizeNid() {
+    const el = document.getElementById('f-nid');
+    el.value = el.value.replace(/\D/g, '');
+    liveCheck('nid');
+  }
+  function sanitizePhone() {
+    const el = document.getElementById('f-phone');
+    el.value = el.value.replace(/\D/g, '').slice(0, 10);
+    liveCheck('phone');
+  }
+
+  function liveCheck(field) {
+    const cfg    = LIVE_CFG[field];
+    const digits = document.getElementById(field === 'phone' ? 'f-phone' : 'f-nid').value.replace(/\D/g,'').length;
+    const hint   = document.getElementById(cfg.hintId);
+    if (!digits) { hint.className = 'digit-hint'; return; }
+    if (digits >= cfg.min && digits <= cfg.max) {
+      hint.textContent = '✓ ' + digits + ' ' + cfg.label;
+      hint.className   = 'digit-hint on ok';
+    } else if (digits > cfg.max) {
+      hint.textContent = '✗ ' + digits + ' ' + cfg.label + ' — ' + cfg.over;
+      hint.className   = 'digit-hint on over';
+    } else {
+      const range = cfg.min === cfg.max ? cfg.min : cfg.min + '–' + cfg.max;
+      hint.textContent = digits + ' / ' + range + ' ' + cfg.label;
+      hint.className   = 'digit-hint on under';
+    }
+  }
+
   // ── Error helpers ─────────────────────────────────────────
   function setErr(errId, inputId, show) {
     document.getElementById(errId).classList.toggle('on', show);
@@ -829,8 +1313,10 @@ function doGet(e) {
     let ok = true;
     const v = id => document.getElementById(id).value.trim();
     if (!v('f-name'))    { setErr('e-name','f-name',true);      ok=false; } else setErr('e-name','f-name',false);
-    if (!v('f-nid'))     { setErr('e-nid','f-nid',true);        ok=false; } else setErr('e-nid','f-nid',false);
-    if (!v('f-phone'))   { setErr('e-phone','f-phone',true);    ok=false; } else setErr('e-phone','f-phone',false);
+    const nidDigits = v('f-nid').replace(/\D/g,'');
+    if (nidDigits.length !== 9) { setErr('e-nid','f-nid',true); ok=false; } else setErr('e-nid','f-nid',false);
+    const phoneDigits = v('f-phone').replace(/\D/g,'');
+    if (phoneDigits.length < 9 || phoneDigits.length > 10) { setErr('e-phone','f-phone',true); ok=false; } else setErr('e-phone','f-phone',false);
     if (!v('f-tg'))      { setErr('e-tg','f-tg',true);          ok=false; } else setErr('e-tg','f-tg',false);
     if (!v('f-commune')) { setErr('e-commune','f-commune',true); ok=false; } else setErr('e-commune','f-commune',false);
     const expVal = document.getElementById('f-exp').value;
@@ -881,6 +1367,16 @@ function doGet(e) {
       return;
     }
     const btn = document.getElementById('submit-btn');
+    const dup = findDuplicate(
+      document.getElementById('f-phone').value.trim(),
+      document.getElementById('f-nid').value.trim()
+    );
+    if (dup) {
+      const dupDate = new Date(dup.timestamp).toLocaleDateString();
+      if (!confirm(currentLang === 'en'
+        ? 'A submission with this phone number or ID was already recorded on ' + dupDate + '. Submit again anyway?'
+        : 'ព័ត៌មានទូរស័ព្ទ ឬ ID នេះបានដាក់ស្នើនៅ ' + dupDate + '។ ដាក់ម្តងទៀតឬ?')) return;
+    }
     btn.disabled    = true;
     btn.textContent = i18n[currentLang]['submitting'];
     const payload = {
@@ -913,6 +1409,7 @@ function doGet(e) {
 
   // ── Success ───────────────────────────────────────────────
   function showSuccess(d) {
+    saveSubmission({ phone: d.phone, nid: d.nationalId, name: d.fullName, timestamp: Date.now(), dateLabel: d.days, timeSlot: d.timeSlot });
     document.getElementById('form').style.display = 'none';
     document.getElementById('success-screen').classList.add('on');
     const t = i18n[currentLang];
@@ -927,6 +1424,17 @@ function doGet(e) {
   }
 
   function resetForm() {
+    const latest = getLatestSubmission();
+    if (latest) {
+      const cooldown = getApplicableCooldown();
+      const r = cooldown - (Date.now() - latest.timestamp);
+      if (r > 0) {
+        const elapsed = Math.floor((Date.now() - latest.timestamp) / 60000);
+        if (!confirm(currentLang === 'en'
+          ? 'You submitted ' + elapsed + ' minute(s) ago. Submit for a different person?'
+          : 'អ្នកបានដាក់ស្នើ ' + elapsed + 'ន មុន។ ដាក់ពាក្យសម្រាប់នរណាម្នាក់ទៀតឬ?')) return;
+      }
+    }
     document.getElementById('form').reset();
     document.getElementById('form').style.display = 'block';
     document.getElementById('success-screen').classList.remove('on');
@@ -1042,7 +1550,7 @@ function doGet(e) {
       const pmActive = selSlot && selSlot.key === pmKey;
       const seatSvg = '<svg style="width:13px;height:13px;vertical-align:-1px;margin-right:3px;" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="1" width="10" height="6" rx="1.5"/><rect x="2" y="8" width="12" height="3" rx="1"/><rect x="3" y="11" width="2" height="4" rx="1"/><rect x="11" y="11" width="2" height="4" rx="1"/></svg>';
       const seatsHtml = (left, max, full) => {
-        if (full) return '<span class="slot-seats seats-full">' + seatSvg + 'FULL</span>';
+        if (full) return '<span class="slot-seats seats-full">' + seatSvg + 'ពេញ</span>';
         if (left <= Math.max(1, Math.ceil(max * 0.25))) return '<span class="slot-seats seats-low">' + seatSvg + left + ' left</span>';
         return '<span class="slot-seats seats-ok">' + seatSvg + (currentLang==='km'?'ទំនេរ':'Available') + '</span>';
       };
@@ -1109,6 +1617,14 @@ function doGet(e) {
     renderSlotPicker();
     toast('Schedule saved!');
   }
+  function switchTab(tab) {
+    document.getElementById('tab-form').style.display  = tab === 'form'  ? 'block' : 'none';
+    document.getElementById('tab-guide').style.display = tab === 'guide' ? 'block' : 'none';
+    document.getElementById('tn-form').classList.toggle('active',  tab === 'form');
+    document.getElementById('tn-guide').classList.toggle('active', tab === 'guide');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   function toast(msg) {
     const el = document.getElementById('toast');
     el.textContent = msg; el.classList.add('on');
