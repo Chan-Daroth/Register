@@ -8,13 +8,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    html { overflow-x:hidden; }
     :root {
       --grab:#00b14f; --grab-dark:#007a38; --grab-light:#e8f8ef;
       --surface:#fff; --bg:#f0f4f8; --text:#1a1a2e;
       --muted:#6b7280; --border:#e2e8f0; --err:#dc2626;
       --radius:10px; --shadow:0 2px 8px rgba(0,0,0,.08);
     }
-    body { font-family:'Kantumruy Pro',system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+    body { font-family:'Kantumruy Pro',system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; word-break:break-word; }
 
     /* ── Header ── */
     .hdr { background:var(--grab); padding:18px 24px; text-align:center; color:#fff; position:relative; }
@@ -218,6 +219,47 @@
     /* ── Toast ── */
     .toast { position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(80px); opacity:0; background:#1e293b; color:#fff; padding:10px 22px; border-radius:100px; font-size:.83rem; font-weight:500; transition:transform .3s,opacity .3s; z-index:1000; white-space:nowrap; pointer-events:none; }
     .toast.on { transform:translateX(-50%) translateY(0); opacity:1; }
+
+    /* ── Responsive ── */
+    /* Large screens — widen content */
+    @media(min-width:700px) {
+      .main { padding:28px 24px 80px; }
+      .scard-body { padding:22px; }
+      .hdr { padding:22px 32px; }
+      .hdr-logo { font-size:2.4rem; }
+    }
+    /* Small phones */
+    @media(max-width:400px) {
+      .main { padding:14px 10px 80px; }
+      .scard-body { padding:14px; }
+      .scard-hdr { padding:11px 14px; }
+      .hdr { padding:14px 12px; }
+      .hdr-logo { font-size:1.6rem; }
+      .hdr-sub { font-size:.78rem; }
+      .tab-nav button { font-size:.8rem; padding:11px 6px; }
+      .btn-submit { font-size:.92rem; padding:13px; }
+      .svc-cards { grid-template-columns:1fr 1fr; }
+      .slot-row { grid-template-columns:70px 1fr 1fr; }
+      .field input { font-size:.85rem; }
+      .confirm-text { font-size:.8rem; }
+    }
+    /* Very small phones */
+    @media(max-width:320px) {
+      .main { padding:10px 8px 80px; }
+      .scard-body { padding:12px; }
+      .field-row { grid-template-columns:1fr; }
+      .svc-cards { grid-template-columns:1fr; }
+      .slot-row { grid-template-columns:1fr; }
+      .slot-date-cell { display:none; }
+    }
+    /* Tablet */
+    @media(min-width:480px) and (max-width:699px) {
+      .main { padding:20px 18px 80px; }
+    }
+    /* All screens — prevent content overflow */
+    img, svg, pre { max-width:100%; }
+    input, select, textarea { max-width:100%; }
+    .setup-body pre { font-size:.72rem; }
 
     @media print {
       .tab-nav, .setup-banner, .setup-section, .qr-actions, .hdr-sub, .lang-btn { display:none !important; }
@@ -596,7 +638,7 @@ function doGet(e) {
         <div style="background:#f8fafc;border-radius:8px;padding:12px;">
           <div style="font-weight:700;font-size:.88rem;margin-bottom:4px;">លេខអត្តសញ្ញាណប័ណ្ណ</div>
           <div style="font-size:.82rem;color:#374151;line-height:1.8;">
-            ✏️ វាយ<strong>តែលេខ</strong>ពីអត្តសញ្ញាណប័ណ្ណ<br>
+            ✏️ វាយលេខពីអត្តសញ្ញាណប័ណ្ណរបស់លោកអ្នក<br>
             ⚠️ មិនត្រូវវាយអក្សរ ឬ សញ្ញាផ្សេង
           </div>
         </div>
@@ -614,7 +656,7 @@ function doGet(e) {
           <div style="font-weight:700;font-size:.88rem;margin-bottom:4px;">លេខទូរស័ព្ទ & តេឡេក្រាម</div>
           <div style="font-size:.82rem;color:#374151;line-height:1.8;">
             ✏️ ទូរស័ព្ទ: <strong>012 345 678</strong><br>
-            ✏️ Telegram: <strong>@username</strong> ឬ <strong>012345678</strong><br>
+            ✏️ តេឡេក្រាម: <strong>@username</strong> ឬ <strong>012345678</strong><br>
             ⚠️ វាយឱ្យត្រឹមត្រូវ ដើម្បីក្រុមការងារអាចទំនាក់ទំនងបាន
           </div>
         </div>
@@ -651,7 +693,7 @@ function doGet(e) {
         </div>
       </div>
       <div style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:8px;padding:12px;margin-top:10px;font-size:.82rem;color:#78350f;line-height:1.7;">
-        💡 ជ្រើស<strong>ប្រភេទតែមួយ</strong>ដែលអ្នកចូលចិត្ត
+        💡 ជ្រើសរើសសេវាកម្មមួយដែលអ្នកចូលចិត្ត
       </div>
     </div>
   </div>
@@ -732,7 +774,7 @@ function doGet(e) {
   <div class="scard">
     <div class="scard-hdr">
       <div class="scard-num">4</div>
-      <div class="scard-title">ឯកសារត្រូវនាំថ្ងៃសំភាស</div>
+      <div class="scard-title">ឯកសារដែលត្រូវយកមកថ្ងៃសម្ភាស</div>
     </div>
     <div class="scard-body">
       <div style="display:flex;flex-direction:column;gap:8px;">
@@ -747,19 +789,19 @@ function doGet(e) {
           <span style="font-size:1.3rem;">📄</span>
           <div>
             <div style="font-weight:700;font-size:.88rem;">កាតគ្រីម៉ូតូ</div>
-            <div style="font-size:.78rem;color:var(--muted);">Vehicle Registration Card</div>
+            <div style="font-size:.78rem;color:var(--muted);">ច្បាប់ចម្លង ១ ច្បាប់</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;background:#f8fafc;border-radius:8px;padding:11px 12px;">
           <span style="font-size:1.3rem;">📋</span>
           <div>
             <div style="font-weight:700;font-size:.88rem;">ប្រវិត្តរូបសង្ខេប (CV)</div>
-            <div style="font-size:.78rem;color:var(--muted);">Resume / CV</div>
+            <div style="font-size:.78rem;color:var(--muted);">ច្បាប់ចម្លង ១ ច្បាប់</div>
           </div>
         </div>
       </div>
       <div style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:8px;padding:12px;margin-top:10px;font-size:.82rem;color:#78350f;line-height:1.7;">
-        ⚠️ <strong>សូមនាំឯកសារគ្រប់</strong>មុនចូលសំភាស។ ការខ្វះឯកសារអាចធ្វើឱ្យពន្យារពេល។
+        សូមយកឯកសារតាមលក្ខខណ្ឌមុនចូលសម្ភាសន៏
       </div>
     </div>
   </div>
